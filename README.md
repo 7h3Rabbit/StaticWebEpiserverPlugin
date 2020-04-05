@@ -58,11 +58,23 @@ It should (havn't yet test it) be possible to create the pages directory in your
 
 
 
-## When is running? ##
+## What functionality is provided in Plugin? ##
 
 - Do changes for a page or block(must be placed on a page) in EpiServer and publish your changes.
 - StaticWebPlugin will now try to access your website and write back the result it gets to the folder you have entered.
 
+### Generate static pages on publishing of Pages and Blocks ###
 
-## What extra functionality can be used ##
-- StaticWeb is registering a displaychannel called "StaticWeb" (See `Header.cshtml` and `Header.staticweb.cshtml` for examples on how to use it). It is perfect for removing functionality that can't be used in a static website (like filitering or search). It also makes it possible for you to view how the page will look and work on the static version.
+TBD
+
+### Generate static pages on running scheduled job ###
+
+TBD
+
+### Having different views for StaticWeb and normal users ###
+
+StaticWeb is registering a displaychannel called "StaticWeb" (See `Header.cshtml` and `Header.staticweb.cshtml` for examples on how to use it). It is perfect for removing functionality that can't be used in a static website (like filitering or search). It also makes it possible for you to view how the page will look and work on the static version.
+
+### Find, download and generate resources ###
+
+TBD
