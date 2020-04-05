@@ -328,6 +328,7 @@ namespace StaticWebEpiserverPlugin.Services
                     case ".jpeg":
                     case ".jpe":
                     case ".gif":
+                    case ".webp":
                     case ".ico":
                     case ".pdf":
                         // For approved file extensions that we don't need to do any changes on
