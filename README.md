@@ -29,11 +29,54 @@ It should (havn't yet test it) be possible to create the pages directory in your
   - Images (png, jpg, jpeg, jpe, gif, webp)
   - documents (pdf)
   - Icons (ico)
+  
+## What functionality is provided in Plugin? ##
+
+- Do changes for a page or block(must be placed on a page) in EpiServer and publish your changes.
+- StaticWebPlugin will now try to access your website and write back the result it gets to the folder you have entered.
+
+### Generate static pages on publishing of Pages and Blocks ###
+
+StaticWebEpiserverPlugin uses the PublishedContent event on IContentEvents to listen for changes that are published on your site.
+This way it will make sure your site is always up to date with what you have published in EpiServer.
+No need for busting caches or having your website running without cache do always show the lastest information.
+As long as your pages are inheriting from PageData and your blocks are inheriting from BlockData, StaticWebEpiserver will keep track of your changes.
+
+### Generate static pages on running scheduled job ###
+
+StaticWebEpiserverPlugin are also providing a scheduled job for you to run that will generate alla pages below the home of your website.
+Pages that arenot a child (or a child of a child, and so on) of your startpage it will not be included in the pages generated.
+To start the job, run the job called "Generate StaticWeb".
+
+### Having different views for StaticWeb and normal users ###
+
+StaticWeb is registering a displaychannel called "StaticWeb" (See `Header.cshtml` and `Header.staticweb.cshtml` for examples on how to use it). It is perfect for removing functionality that can't be used in a static website (like filitering or search). It also makes it possible for you to view how the page will look and work on the static version.
+
+### Find, download and generate resources ###
+
+When generating a page, StaticWebEpiserverPlugin will find all client side resources required for the page to work, download them and store them in the output folder along with the pages.
+
+### Following markup will searched for resources ###
+
+- script tag (src attribute)
+- link tag (href attribute)
+- img tag (src attribute)
+- source tag (srcset attribute)
+
+### Following resource types will be stored ###
+  - css (and resources declared in url())
+  - javascript (no dependencies)
+  - Web fonts (woff and woff2)
+  - Images (png, jpg, jpeg, jpe, gif, webp)
+  - documents (pdf)
+  - Icons (ico)
+
+The rest will be ignored.
 
 ## Requirements ##
 
 - EpiServer 7.5+
-- .Net 4.7+
+- .Net 4.7.2+
 - All pages need to inherit from PageData
 - All blocks needs to inherit from BlockData
 - Website has to return pages, javascript and css as UTF-8
@@ -54,27 +97,3 @@ It should (havn't yet test it) be possible to create the pages directory in your
 - added new property `StaticWeb:InputUrl` to appSettings section in Web.config (must allow anonymous access). Example: `<add key="StaticWeb:InputUrl" value="http://localhost:49822/" />`
 - You are ready to go :)
 
-
-
-
-
-## What functionality is provided in Plugin? ##
-
-- Do changes for a page or block(must be placed on a page) in EpiServer and publish your changes.
-- StaticWebPlugin will now try to access your website and write back the result it gets to the folder you have entered.
-
-### Generate static pages on publishing of Pages and Blocks ###
-
-TBD
-
-### Generate static pages on running scheduled job ###
-
-TBD
-
-### Having different views for StaticWeb and normal users ###
-
-StaticWeb is registering a displaychannel called "StaticWeb" (See `Header.cshtml` and `Header.staticweb.cshtml` for examples on how to use it). It is perfect for removing functionality that can't be used in a static website (like filitering or search). It also makes it possible for you to view how the page will look and work on the static version.
-
-### Find, download and generate resources ###
-
-TBD
