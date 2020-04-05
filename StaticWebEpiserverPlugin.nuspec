@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>1.0.2</version>
+    <title>StaticWebEpiserverPlugin</title>
+    <authors>7h3Rabbit</authors>
+    <owners>7h3Rabbit</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/</projectUrl>
+    <repository type="git" url="https://github.com/7h3Rabbit/StaticWebEpiserverPlugin.git" />
+    <iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
+    <description>Generate static website but still use EpiServer as your CMS for your editors</description>
+    <releaseNotes>Initial release. Includes generating pages on publishing event and scheduled job</releaseNotes>
+    <copyright>Copyright 2020</copyright>
+    <tags>episerver static-site-generator episerver-cms episerver-plugin plugin</tags>
+    <dependencies>
+      <group targetFramework=".NETFramework4.7.2" />
+    </dependencies>
+  </metadata>
+</package>
