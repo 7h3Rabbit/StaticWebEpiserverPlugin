@@ -59,6 +59,7 @@ By inherit from `IStaticWebIgnoreGenerate` iterface on a page or block type you 
 By inherit from `IStaticWebIgnoreGenerateDynamically` iterface on a page type you will tell StaticWebEpiServerPlugin that it MAY or MAY NOT generate a static version of this page when publishing or running the scheduled job.
 StaticWebEpiServerPlugin will call method `ShouldGenerate` for the page and if it returns true, it will generate a static version of the page when publishing or running the scheduled job.
 BUT if it returns false, it will not generate page AND also check (by calling `ShouldDeleteGenerated`) if it should remove any previously generated version of this page.
+See [StandardPage.cs](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/master/Models/Pages/StandardPage.cs) for example on how it can be used.
 
 ### Find, download and generate resources ###
 
