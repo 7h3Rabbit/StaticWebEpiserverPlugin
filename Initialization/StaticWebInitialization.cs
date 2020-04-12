@@ -24,6 +24,7 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnPublishedContent(object sender, ContentEventArgs e)
         {
+            // This page or block type should be ignored
             if (e.Content is IStaticWebIgnoreGenerate)
             {
                 return;
@@ -33,8 +34,23 @@ namespace StaticWebEpiserverPlugin.Initialization
             {
                 var contentLink = e.ContentLink;
                 var page = e.Content as PageData;
-
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+
+                // This page type has a conditional for when we should generate it
+                if (e.Content is IStaticWebIgnoreGenerateDynamically generateDynamically)
+                {
+                    if (!generateDynamically.ShouldGenerate())
+                    {
+                        if (generateDynamically.ShouldDeleteGenerated())
+                        {
+                            staticWebService.RemoveGeneratedPage(contentLink, page.Language);
+                        }
+
+                        // This page should not be generated at this time, ignore it.
+                        return;
+                    }
+                }
+
                 staticWebService.GeneratePage(contentLink, page.Language);
             }
             else if (e.Content is BlockData)

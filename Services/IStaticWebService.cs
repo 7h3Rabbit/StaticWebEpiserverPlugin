@@ -8,5 +8,6 @@ namespace StaticWebEpiserverPlugin.Services
     {
         void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
         void GeneratePagesDependingOnBlock(ContentReference contentLink);
+        void RemoveGeneratedPage(ContentReference contentLink, CultureInfo language);
     }
 }

@@ -176,6 +176,7 @@
     <Compile Include="Channels\StaticWebChannel.cs" />
     <Compile Include="Initialization\StaticWebDisplayModesInitialization.cs" />
     <Compile Include="Interfaces\IStaticWebIgnoreGenerate.cs" />
+    <Compile Include="Interfaces\IStaticWebIgnoreGenerateDynamically.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Initialization\StaticWebInitialization.cs" />
     <Compile Include="ScheduledJobs\StaticWebScheduledJob.cs" />

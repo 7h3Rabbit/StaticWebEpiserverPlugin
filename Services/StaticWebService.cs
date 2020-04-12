@@ -3,6 +3,7 @@ using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -83,33 +84,36 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        public void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+        public void RemoveGeneratedPage(ContentReference contentLink, CultureInfo language)
         {
-            var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
-            var orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
+            string orginalUrl = GetPageUrl(contentLink, language);
             if (orginalUrl == null)
                 return;
 
-            if (orginalUrl.StartsWith("//"))
+            string relativePath = GetPageRelativePath(orginalUrl);
+
+            if (!Directory.Exists(_rootPath + relativePath))
             {
+                // Directory doesn't exist, nothing to remove :)
                 return;
             }
 
-            // NOTE: If publishing event comes from scheduled publishing (orginalUrl includes protocol, domain and port number)
-            if (!orginalUrl.StartsWith("/"))
+            if (!File.Exists(_rootPath + relativePath + "index.html"))
             {
-                orginalUrl = new Uri(orginalUrl).AbsolutePath;
+                // File doesn't exist, nothing to remove :)
+                return;
             }
 
-            var relativePath = orginalUrl.Replace("/", @"\");
-            if (!relativePath.StartsWith(@"\"))
-            {
-                relativePath = @"\" + relativePath;
-            }
-            if (!relativePath.EndsWith(@"\"))
-            {
-                relativePath = relativePath + @"\";
-            }
+            File.Delete(_rootPath + relativePath + "index.html");
+        }
+
+        public void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+        {
+            string orginalUrl = GetPageUrl(contentLink, language);
+            if (orginalUrl == null)
+                return;
+
+            string relativePath = GetPageRelativePath(orginalUrl);
 
             string html = null;
             WebClient webClient = new WebClient();
@@ -139,6 +143,42 @@ namespace StaticWebEpiserverPlugin.Services
             File.WriteAllText(_rootPath + relativePath + "index.html", html);
         }
 
+        private static string GetPageRelativePath(string orginalUrl)
+        {
+            var relativePath = orginalUrl.Replace("/", @"\");
+            if (!relativePath.StartsWith(@"\"))
+            {
+                relativePath = @"\" + relativePath;
+            }
+            if (!relativePath.EndsWith(@"\"))
+            {
+                relativePath = relativePath + @"\";
+            }
+
+            return relativePath;
+        }
+
+        private static string GetPageUrl(ContentReference contentLink, CultureInfo language)
+        {
+            var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
+            string orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
+            if (orginalUrl == null)
+                return null;
+
+            if (orginalUrl.StartsWith("//"))
+            {
+                return null;
+            }
+
+            // NOTE: If publishing event comes from scheduled publishing (orginalUrl includes protocol, domain and port number)
+            if (!orginalUrl.StartsWith("/"))
+            {
+                orginalUrl = new Uri(orginalUrl).AbsolutePath;
+            }
+
+            return orginalUrl;
+        }
+
         public void GeneratePagesDependingOnBlock(ContentReference contentLink)
         {
             var repository = ServiceLocator.Current.GetInstance<IContentRepository>();
@@ -146,13 +186,33 @@ namespace StaticWebEpiserverPlugin.Services
 
             foreach (var page in pages)
             {
+                // This page or block type should be ignored
+                if (page is IStaticWebIgnoreGenerate)
+                {
+                    continue;
+                }
+
+                // This page type has a conditional for when we should generate it
+                if (page is IStaticWebIgnoreGenerateDynamically generateDynamically)
+                {
+                    if (!generateDynamically.ShouldGenerate())
+                    {
+                        if (generateDynamically.ShouldDeleteGenerated())
+                        {
+                            RemoveGeneratedPage(contentLink, page.Language);
+                        }
+
+                        // This page should not be generated at this time, ignore it.
+                        continue;
+                    }
+                }
+
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
                 {
                     GeneratePage(page.ContentLink, lang);
                 }
             }
-
         }
 
         protected static string TryToFixLinkUrls(string html)
