@@ -45,7 +45,7 @@ As long as your pages are inheriting from PageData and your blocks are inheritin
 ### Generate static pages on running scheduled job ###
 
 StaticWebEpiserverPlugin are also providing a scheduled job for you to run that will generate alla pages below the home of your website.
-Pages that arenot a child (or a child of a child, and so on) of your startpage it will not be included in the pages generated.
+Pages that are not a child (or a child of a child, and so on) of your startpage it will not be included in the pages generated.
 To start the job, run the job called "Generate StaticWeb".
 
 ### Having different views for StaticWeb and normal users ###
