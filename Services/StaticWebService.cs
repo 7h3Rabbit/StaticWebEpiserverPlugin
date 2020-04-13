@@ -3,6 +3,7 @@ using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Events;
 using StaticWebEpiserverPlugin.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,16 @@ namespace StaticWebEpiserverPlugin.Services
     {
         protected string _rootUrl = null;
         protected string _rootPath = null;
+
+        public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGeneratePage;
+        public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGetPageContent;
+        public event EventHandler<StaticWebGeneratePageEventArgs> AfterGetPageContent;
+        public event EventHandler<StaticWebGeneratePageEventArgs> BeforeTryToFixLinkUrls;
+        public event EventHandler<StaticWebGeneratePageEventArgs> BeforeEnsurePageResources;
+        public event EventHandler<StaticWebGeneratePageEventArgs> AfterEnsurePageResources;
+        public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGeneratePageWrite;
+        public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
+        public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePage;
 
         public StaticWebService()
         {
@@ -109,38 +120,118 @@ namespace StaticWebEpiserverPlugin.Services
 
         public void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
         {
+            var generatePageEvent = new StaticWebGeneratePageEventArgs(contentLink, language, null);
+            if (generatedResources != null)
+            {
+                generatePageEvent.Resources = generatedResources;
+            }
+            else
+            {
+                generatePageEvent.Resources = new Dictionary<string, string>();
+            }
+
+            BeforeGeneratePage?.Invoke(this, generatePageEvent);
+            // someone wants to cancel this generation of this event.
+            if (generatePageEvent.CancelAction)
+            {
+                return;
+            }
+
             string orginalUrl = GetPageUrl(contentLink, language);
             if (orginalUrl == null)
                 return;
 
             string relativePath = GetPageRelativePath(orginalUrl);
+            generatePageEvent.PageUrl = _rootUrl + orginalUrl;
+
+            BeforeGetPageContent?.Invoke(this, generatePageEvent);
 
             string html = null;
+            // someone wants to cancel this generation of this event.
+            if (!generatePageEvent.CancelAction)
+            {
+                html = GetPageContent(generatePageEvent);
+            }
+            generatePageEvent.Content = html;
+
+            // We don't care about a cancel action here
+            AfterGetPageContent?.Invoke(this, generatePageEvent);
+
+            if (generatePageEvent.Content == null)
+                return;
+
+            // reset cancel action and reason
+            generatePageEvent.CancelAction = false;
+            generatePageEvent.CancelReason = null;
+
+            BeforeTryToFixLinkUrls?.Invoke(this, generatePageEvent);
+            // someone wants to cancel/ignore ensuring resources.
+            if (!generatePageEvent.CancelAction)
+            {
+                generatePageEvent.Content = TryToFixLinkUrls(generatePageEvent.Content);
+            }
+
+            // reset cancel action and reason
+            generatePageEvent.CancelAction = false;
+            generatePageEvent.CancelReason = null;
+
+            BeforeEnsurePageResources?.Invoke(this, generatePageEvent);
+            // someone wants to cancel/ignore ensuring resources.
+            if (!generatePageEvent.CancelAction)
+            {
+                generatePageEvent.Content = EnsurePageResources(_rootUrl, _rootPath, generatePageEvent.Content, generatePageEvent.Resources);
+            }
+
+            // reset cancel action and reason
+            generatePageEvent.CancelAction = false;
+            generatePageEvent.CancelReason = null;
+
+            // We don't care about a cancel action here
+            AfterEnsurePageResources?.Invoke(this, generatePageEvent);
+
+            string filePath = _rootPath + relativePath + "index.html";
+            generatePageEvent.FilePath = filePath;
+
+            // reset cancel action and reason
+            generatePageEvent.CancelAction = false;
+            generatePageEvent.CancelReason = null;
+
+            BeforeGeneratePageWrite?.Invoke(this, generatePageEvent);
+            // someone wants to cancel this page write.
+            if (!generatePageEvent.CancelAction)
+            {
+                if (!Directory.Exists(_rootPath + relativePath))
+                {
+                    Directory.CreateDirectory(_rootPath + relativePath);
+                }
+
+                File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
+            }
+
+            AfterGeneratePageWrite?.Invoke(this, generatePageEvent);
+            // someone wants to cancel AFTER page write.
+            if (generatePageEvent.CancelAction)
+                return;
+
+            AfterGeneratePage?.Invoke(this, generatePageEvent);
+        }
+
+        private static string GetPageContent(StaticWebGeneratePageEventArgs generatePageEvent)
+        {
             WebClient webClient = new WebClient();
             webClient.Headers.Set(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36 StaticWebPlugin/0.1");
             webClient.Encoding = Encoding.UTF8;
             try
             {
-                html = webClient.DownloadString(_rootUrl + orginalUrl);
+                string html = webClient.DownloadString(generatePageEvent.PageUrl);
+                return html;
             }
             catch (WebException)
             {
                 // Ignore web exception, for example 404
             }
 
-            if (html == null)
-                return;
-
-            html = TryToFixLinkUrls(html);
-
-            html = EnsurePageResources(_rootUrl, _rootPath, html, generatedResources);
-
-            if (!Directory.Exists(_rootPath + relativePath))
-            {
-                Directory.CreateDirectory(_rootPath + relativePath);
-            }
-
-            File.WriteAllText(_rootPath + relativePath + "index.html", html);
+            return null;
         }
 
         private static string GetPageRelativePath(string orginalUrl)
