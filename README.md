@@ -61,6 +61,13 @@ StaticWebEpiServerPlugin will call method `ShouldGenerate` for the page and if i
 BUT if it returns false, it will not generate page AND also check (by calling `ShouldDeleteGenerated`) if it should remove any previously generated version of this page.
 See [StandardPage.cs](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/master/Models/Pages/StandardPage.cs) for example on how it can be used.
 
+### You can customize it using Events ###
+We want people to be able to modify the use after their own liking.
+There for we will want to support the following events on the IStaticWebService.
+They will be called in the order specified below.
+You can read more on what is available at [Issue #2](https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/issues/2)
+or see an example in [StaticWebMessageInjectionDemoInitialization](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/master/Business/Initialization/StaticWebMessageInjectionDemoInitialization.cs)
+
 ### Find, download and generate resources ###
 
 When generating a page, StaticWebEpiserverPlugin will find all client side resources required for the page to work, download them and store them in the output folder along with the pages.
