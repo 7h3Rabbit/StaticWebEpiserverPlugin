@@ -32,8 +32,8 @@ It should (havn't yet test it) be possible to create the pages directory in your
   
 ## What functionality is provided in Plugin? ##
 
-- Do changes for a page or block(must be placed on a page) in EpiServer and publish your changes.
-- StaticWebPlugin will now try to access your website and write back the result it gets to the folder you have entered.
+Below you can read more what StaticWebEpiserverPlugin can do today.
+If you are missing something or something is not working as expected, please let me know :)
 
 ### Generate static pages on publishing of Pages and Blocks ###
 
