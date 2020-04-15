@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <title>StaticWebEpiserverPlugin</title>
     <authors>7h3Rabbit</authors>
     <owners>7h3Rabbit</owners>
@@ -12,7 +12,16 @@
     <repository type="git" url="https://github.com/7h3Rabbit/StaticWebEpiserverPlugin.git" />
     <iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
     <description>Generate static website but still use EpiServer as your CMS for your editors</description>
-    <releaseNotes>Initial release. Includes generating pages on publishing event and scheduled job</releaseNotes>
+    <releaseNotes>
+New features:
+- Adding possibility to consume events
+- Possibility to add Interfaces on page types you want to ignore
+- Possibility at runtime to ignore page
+- Improve documentation with more usecases
+ 
+Bug fixes:
+- Make sure we are not downloading the same file more then once
+- Don't download resources on separate domain just because it uses relative protocol</releaseNotes>
     <copyright>Copyright 2020</copyright>
     <tags>episerver static-site-generator episerver-cms episerver-plugin plugin</tags>
     <dependencies>
