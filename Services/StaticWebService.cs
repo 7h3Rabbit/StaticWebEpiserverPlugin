@@ -489,7 +489,7 @@ namespace StaticWebEpiserverPlugin.Services
                         continue;
                     }
 
-                    var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl);
+                    var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, replaceResourcePairs);
                     if (!string.IsNullOrEmpty(newResourceUrl))
                     {
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
@@ -580,7 +580,7 @@ namespace StaticWebEpiserverPlugin.Services
                                 var contentCss = Encoding.UTF8.GetString(data);
                                 string newCssResourceUrl = GetNewResourceUrl(resourcePath, resourceUrl, ".css");
 
-                                EnsureCssResources(rootUrl, rootPath, resourcePath, newCssResourceUrl, contentCss);
+                                EnsureCssResources(rootUrl, rootPath, resourcePath, newCssResourceUrl, contentCss, replaceResourcePairs);
                                 return newCssResourceUrl;
                             case "text/javascript":
                             case "application/javascript":
