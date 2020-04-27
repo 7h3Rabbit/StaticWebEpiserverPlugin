@@ -35,6 +35,10 @@ namespace StaticWebEpiserverPlugin.Initialization
                 var contentLink = e.ContentLink;
                 var page = e.Content as PageData;
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+                if (!staticWebService.Enabled)
+                {
+                    return;
+                }
 
                 // This page type has a conditional for when we should generate it
                 if (e.Content is IStaticWebIgnoreGenerateDynamically generateDynamically)
@@ -57,6 +61,11 @@ namespace StaticWebEpiserverPlugin.Initialization
             {
                 var block = e.Content as BlockData;
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+                if (!staticWebService.Enabled)
+                {
+                    return;
+                }
+
                 staticWebService.GeneratePagesDependingOnBlock(e.ContentLink);
             }
         }

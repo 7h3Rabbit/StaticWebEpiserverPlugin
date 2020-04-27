@@ -49,6 +49,11 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             //Call OnStatusChanged to periodically notify progress of job for manually started jobs
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
+            if (!_staticWebService.Enabled)
+            {
+                return "StaticWeb is not enabled! Add 'StaticWeb:InputUrl' and 'StaticWeb:OutputFolder' under 'appSettings' element in web.config";
+            }
+
             // Setting number of pages to start value (0), it is used to show message after job is done
             _numberOfPages = 0;
             _generatedPages = new Dictionary<int, string>();
