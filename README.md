@@ -113,3 +113,21 @@ The rest will be ignored.
 - added new property `StaticWeb:InputUrl` to appSettings section in Web.config (must allow anonymous access). Example: `<add key="StaticWeb:InputUrl" value="http://localhost:49822/" />`
 - You are ready to go :)
 
+
+## Additional Settings ##
+
+### `<add key="StaticWeb:ResourceFolder" value="cache\v1" />` ###
+Tells StaticWebEpiServerPlugin to use a subfolder `cache\v1` for all resources.
+By default this is set to "".
+
+### `<add key="StaticWeb:UseContentHash" value="true" />` ###
+
+Tells StaticWebEpiServerPlugin to generate content hash and use for resource name.
+By default this is set to "true".
+_( This value has to be true to make .axd resources static)_
+
+### `<add key="StaticWeb:UseResourceUrl" value="false" />` ###
+
+Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
+By default this is set to "false".
+_(If you also set `StaticWeb:UseContentHash` to true it will combine the two)_
