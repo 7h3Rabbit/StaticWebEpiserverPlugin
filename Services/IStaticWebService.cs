@@ -9,6 +9,11 @@ namespace StaticWebEpiserverPlugin.Services
     public interface IStaticWebService
     {
         /// <summary>
+        /// Shows if service is usable or not.
+        /// Will return false if following settings are not set in web.config 'StaticWeb:OutputFolder' and 'StaticWeb:InputUrl'.
+        /// </summary>
+        bool Enabled { get; }
+        /// <summary>
         /// First thing happening when GeneratePage is called.
         /// StaticWebGeneratePageEventArg is populated with following info: ContentLink, CultureInfo.
         /// Resources can also be populated IF GeneratePage method is called from ScheduledJob and pages generated before had resources depending on them.
