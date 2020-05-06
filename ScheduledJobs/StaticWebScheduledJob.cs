@@ -5,6 +5,7 @@ using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System;
@@ -82,6 +83,14 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             {
                 return;
             }
+
+            // This page type should be ignored
+            if (page is IStaticWebIgnoreGenerate)
+            {
+                return;
+            }
+
+
             _generatedPages.Add(page.ContentLink.ID, null);
 
             var languages = page.ExistingLanguages;
@@ -92,6 +101,21 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 UpdateScheduledJobStatus(page, lang);
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
+
+                // This page type has a conditional for when we should generate it
+                if (langPage is IStaticWebIgnoreGenerateDynamically generateDynamically)
+                {
+                    if (!generateDynamically.ShouldGenerate())
+                    {
+                        if (generateDynamically.ShouldDeleteGenerated())
+                        {
+                            _staticWebService.RemoveGeneratedPage(langContentLink, lang);
+                        }
+
+                        // This page should not be generated at this time, ignore it.
+                        continue;
+                    }
+                }
 
                 _staticWebService.GeneratePage(langContentLink, lang, _generatedResources);
                 _numberOfPages++;
