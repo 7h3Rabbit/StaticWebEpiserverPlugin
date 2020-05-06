@@ -13,6 +13,8 @@ namespace StaticWebEpiserverPlugin.Services
         /// Will return false if following settings are not set in web.config 'StaticWeb:OutputFolder' and 'StaticWeb:InputUrl'.
         /// </summary>
         bool Enabled { get; }
+        bool UseRouting { get; }
+
         /// <summary>
         /// First thing happening when GeneratePage is called.
         /// StaticWebGeneratePageEventArg is populated with following info: ContentLink, CultureInfo.

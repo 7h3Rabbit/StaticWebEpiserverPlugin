@@ -5,6 +5,7 @@ using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System;
 using System.Collections.Generic;
@@ -64,6 +65,12 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
             var page = _contentRepository.Get<PageData>(startPage);
             GeneratePageInAllLanguages(page);
+
+            if (_staticWebService.UseRouting)
+            {
+                OnStatusChanged("Saving routes to file");
+                StaticWebRouting.SaveRoutes();
+            }
 
             return $"{_numberOfPages} of pages where generated with all depending resources.";
         }

@@ -4,6 +4,7 @@ using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using StaticWebEpiserverPlugin.Interfaces;
+using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System.Web.Mvc;
 
@@ -17,6 +18,11 @@ namespace StaticWebEpiserverPlugin.Initialization
         {
             DependencyResolver.SetResolver(new StaticWebServiceLocatorDependencyResolver(context.Locate.Advanced));
 
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+            if (staticWebService.UseRouting)
+            {
+                StaticWebRouting.LoadRoutes();
+            }
 
             var events = ServiceLocator.Current.GetInstance<IContentEvents>();
             events.PublishedContent += OnPublishedContent;

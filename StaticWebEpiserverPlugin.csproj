@@ -181,6 +181,7 @@
     <Compile Include="Models\StaticWebDownloadResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Initialization\StaticWebInitialization.cs" />
+    <Compile Include="Routing\StaticWebRouting.cs" />
     <Compile Include="ScheduledJobs\StaticWebScheduledJob.cs" />
     <Compile Include="Services\IStaticWebService.cs" />
     <Compile Include="Services\StaticWebService.cs" />

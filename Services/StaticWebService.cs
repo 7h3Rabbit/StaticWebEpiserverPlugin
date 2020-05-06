@@ -6,6 +6,7 @@ using EPiServer.Web.Routing;
 using StaticWebEpiserverPlugin.Events;
 using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Models;
+using StaticWebEpiserverPlugin.Routing;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -23,6 +24,7 @@ namespace StaticWebEpiserverPlugin.Services
         protected string _rootUrl = null;
         private bool _useHash;
         private bool _useResourceUrl;
+        private bool _useRouting;
         protected string _resourcePath = null;
         protected string _rootPath = null;
         protected bool _enabled = true;
@@ -45,6 +47,8 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
+        public bool UseRouting { get { return Enabled && _useRouting; } }
+
         public StaticWebService()
         {
             _rootPath = ConfigurationManager.AppSettings["StaticWeb:OutputFolder"];
@@ -52,7 +56,8 @@ namespace StaticWebEpiserverPlugin.Services
             _rootUrl = ConfigurationManager.AppSettings["StaticWeb:InputUrl"];
 
             _useHash = ConfigurationManager.AppSettings["StaticWeb:UseContentHash"] == "true";
-            _useResourceUrl = ConfigurationManager.AppSettings["StaticWeb:UseResourceUrl"] == "true"; 
+            _useResourceUrl = ConfigurationManager.AppSettings["StaticWeb:UseResourceUrl"] == "true";
+            _useRouting = ConfigurationManager.AppSettings["StaticWeb:UseRouting"] == "true";
 
             if (Enabled)
             {
@@ -250,6 +255,12 @@ namespace StaticWebEpiserverPlugin.Services
             BeforeGetPageContent?.Invoke(this, generatePageEvent);
 
             string html = null;
+
+            if (UseRouting)
+            {
+                StaticWebRouting.Remove(relativePath);
+            }
+
             // someone wants to cancel this generation of this event.
             if (!generatePageEvent.CancelAction)
             {
@@ -309,6 +320,11 @@ namespace StaticWebEpiserverPlugin.Services
                 }
 
                 File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
+
+                if (UseRouting)
+                {
+                    StaticWebRouting.Add(relativePath);
+                }
             }
 
             AfterGeneratePageWrite?.Invoke(this, generatePageEvent);
