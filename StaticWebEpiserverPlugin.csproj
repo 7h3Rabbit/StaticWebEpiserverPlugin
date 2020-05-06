@@ -186,6 +186,8 @@
     <Compile Include="Services\IStaticWebService.cs" />
     <Compile Include="Services\StaticWebService.cs" />
     <Compile Include="Initialization\StaticWebServiceLocatorDependencyResolver.cs" />
+    <Compile Include="VisitorGroups\StaticWebCriterion.cs" />
+    <Compile Include="VisitorGroups\StaticWebCriterionSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
