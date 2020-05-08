@@ -293,7 +293,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = EnsurePageResources(_rootUrl, _rootPath, _resourcePath, generatePageEvent.Content, generatePageEvent.Resources, _useHash, _useResourceUrl);
+                generatePageEvent.Content = EnsurePageResources(_rootUrl, _rootPath, _resourcePath, generatePageEvent.Content, generatePageEvent.CurrentResources, generatePageEvent.Resources, _useHash, _useResourceUrl);
             }
 
             // reset cancel action and reason
@@ -460,8 +460,13 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected static string EnsurePageResources(string rootUrl, string rootPath, string resourcePath, string html, Dictionary<string, string> replaceResourcePairs = null, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsurePageResources(string rootUrl, string rootPath, string resourcePath, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null, bool useHash = true, bool useResourceUrl = false)
         {
+            if (currentPageResourcePairs == null)
+            {
+                currentPageResourcePairs = new Dictionary<string, string>();
+            }
+
             if (replaceResourcePairs == null)
             {
                 replaceResourcePairs = new Dictionary<string, string>();
@@ -469,11 +474,11 @@ namespace StaticWebEpiserverPlugin.Services
 
             // make sure we have all resources from script, link and img tags for current page
             // <(script|link|img).*(href|src)="(?<resource>[^"]+)
-            EnsureScriptAndLinkAndImgTagSupport(rootUrl, rootPath, resourcePath, ref html, ref replaceResourcePairs, useHash, useResourceUrl);
+            EnsureScriptAndLinkAndImgTagSupport(rootUrl, rootPath, resourcePath, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useHash, useResourceUrl);
 
             // make sure we have all source resources for current page
             // <(source).*(srcset)="(?<resource>[^"]+)"
-            EnsureSourceTagSupport(rootUrl, rootPath, resourcePath, ref html, ref replaceResourcePairs, useHash, useResourceUrl);
+            EnsureSourceTagSupport(rootUrl, rootPath, resourcePath, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useHash, useResourceUrl);
 
             // TODO: make sure we have all meta resources for current page
             // Below matches ALL meta content that is a URL
@@ -495,7 +500,7 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected static void EnsureSourceTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static void EnsureSourceTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             var matches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<resource>[^\"|']+)[\"|']");
             foreach (Match match in matches)
@@ -521,30 +526,30 @@ namespace StaticWebEpiserverPlugin.Services
                              * If we have already downloaded resource, we don't need to download it again.
                              * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
                              **/
+
+                            if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                            {
+                                // current page has no info regarding this resource, add it
+                                currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
+                            }
                             continue;
                         }
 
-                        var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, replaceResourcePairs, useHash, useResourceUrl);
-                        if (!string.IsNullOrEmpty(newResourceUrl))
+                        var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
+                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
-                            if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                            {
-                                replaceResourcePairs.Add(resourceUrl, newResourceUrl);
-                            }
+                            replaceResourcePairs.Add(resourceUrl, newResourceUrl);
                         }
-                        else
+                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                         {
-                            if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                            {
-                                replaceResourcePairs.Add(resourceUrl, null);
-                            }
+                            currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
                         }
                     }
                 }
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static void EnsureScriptAndLinkAndImgTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             var matches = Regex.Matches(html, "<(script|link|img).*(href|src)=[\"|'](?<resource>[^\"|']+)");
             foreach (Match match in matches)
@@ -559,29 +564,29 @@ namespace StaticWebEpiserverPlugin.Services
                          * If we have already downloaded resource, we don't need to download it again.
                          * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
                          **/
+
+                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                        {
+                            // current page has no info regarding this resource, add it
+                            currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
+                        }
                         continue;
                     }
 
-                    var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, replaceResourcePairs, useHash, useResourceUrl);
-                    if (!string.IsNullOrEmpty(newResourceUrl))
+                    var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
+                    if (!replaceResourcePairs.ContainsKey(resourceUrl))
                     {
-                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            replaceResourcePairs.Add(resourceUrl, newResourceUrl);
-                        }
+                        replaceResourcePairs.Add(resourceUrl, newResourceUrl);
                     }
-                    else
+                    if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                     {
-                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            replaceResourcePairs.Add(resourceUrl, null);
-                        }
+                        currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
                     }
                 }
             }
         }
 
-        protected static string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             bool preventDownload = IsDownloadPrevented(resourceUrl, useHash);
             if (preventDownload)
@@ -616,7 +621,7 @@ namespace StaticWebEpiserverPlugin.Services
                 case ".css":
                     // Do more work for this type of resource
                     var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                    var newCssResourceUrl = EnsureCssResources(rootUrl, rootPath, resourcePath, resourceUrl, content, replaceResourcePairs, useHash, useResourceUrl);
+                    var newCssResourceUrl = EnsureCssResources(rootUrl, rootPath, resourcePath, resourceUrl, content, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
                     return newCssResourceUrl;
                 default:
                     // For approved file extensions that we don't need to do any changes on
@@ -820,7 +825,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -845,13 +850,17 @@ namespace StaticWebEpiserverPlugin.Services
                         resourceUrl = directory.Replace(@"\", "/") + "/" + resourceUrl;
                     }
 
-                    string newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, replaceResourcePairs, useHash, useResourceUrl);
+                    string newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
                     if (!string.IsNullOrEmpty(newResourceUrl))
                     {
                         content = content.Replace(orginalUrl, newResourceUrl);
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
                             replaceResourcePairs.Add(resourceUrl, newResourceUrl);
+                        }
+                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                        {
+                            currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
                         }
                     }
                     else
@@ -860,6 +869,10 @@ namespace StaticWebEpiserverPlugin.Services
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
                             replaceResourcePairs.Add(resourceUrl, null);
+                        }
+                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                        {
+                            currentPageResourcePairs.Add(resourceUrl, null);
                         }
                     }
                 }
