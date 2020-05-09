@@ -48,6 +48,10 @@ namespace StaticWebEpiserverPlugin.Services
         }
 
         public bool UseRouting { get { return Enabled && _useRouting; } }
+        public bool UseHash { get { return Enabled && _useHash; } }
+        public bool UseResourceUrl { get { return Enabled && _useResourceUrl; } }
+        public string RootPath { get { return Enabled ?  _rootPath : string.Empty; } }
+        public string ResourcePath { get { return Enabled ? _resourcePath : string.Empty; } }
 
         public StaticWebService()
         {

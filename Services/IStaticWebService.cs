@@ -14,6 +14,10 @@ namespace StaticWebEpiserverPlugin.Services
         /// </summary>
         bool Enabled { get; }
         bool UseRouting { get; }
+        bool UseHash { get; }
+        bool UseResourceUrl { get; }
+        string RootPath { get; }
+        string ResourcePath { get; }
 
         /// <summary>
         /// First thing happening when GeneratePage is called.
