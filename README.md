@@ -137,3 +137,9 @@ _( This value has to be true to make .axd resources static)_
 Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
 By default this is set to "false".
 _(If you also set `StaticWeb:UseContentHash` to true it will combine the two)_
+
+
+### `<add key="StaticWeb:UseRouting" value="true" />` ###
+
+By setting this to "true" you allow StaticWebEpiServerPlugin to write pages and resources inside a EpiServer instance and taking over the routing for pages it has generated static html pages, returning them instead of calling the page controllers.
+By default this is set to "false".
