@@ -63,10 +63,16 @@ See [StandardPage.cs](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/
 
 ### You can customize it using Events ###
 We want people to be able to modify the use after their own liking.
-There for we will want to support the following events on the IStaticWebService.
+There for we support the use of events on the IStaticWebService.
 They will be called in the order specified below.
 You can read more on what is available at [Issue #2](https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/issues/2)
-or see an example in [StaticWebMessageInjectionDemoInitialization](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/master/Business/Initialization/StaticWebMessageInjectionDemoInitialization.cs)
+
+#### Example: Using [RequiredCssOnly](https://github.com/7h3Rabbit/StaticWebEpiserverPlugin.RequiredCssOnly) extension ####
+Showing how to extract only the required CSS need for rendering the page and injecting rulesets as inline CSS.
+To decrease dependencies and make your webpage have a faster initial load time by using AfterEnsurePageResources event in this example: [StaticWebRequiredCssDemoInitialization](https://github.com/7h3Rabbit/EpiServerStaticWebExample/blob/master/EpiserverAlloy/Business/Initialization/StaticWebRequiredCssDemoInitialization.cs)
+
+#### Example: Inject HTML before saving ####
+Showing how AfterGetPageContent event can be consumed in this example: [StaticWebMessageInjectionDemoInitialization](https://github.com/7h3Rabbit/EpiserverAlloyWithForms/blob/master/Business/Initialization/StaticWebMessageInjectionDemoInitialization.cs)
 
 ### Find, download and generate resources ###
 
@@ -131,3 +137,10 @@ _( This value has to be true to make .axd resources static)_
 Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
 By default this is set to "false".
 _(If you also set `StaticWeb:UseContentHash` to true it will combine the two)_
+
+
+### `<add key="StaticWeb:UseRouting" value="true" />` ###
+
+By setting this to "true" you allow StaticWebEpiServerPlugin to write pages and resources inside a EpiServer instance and taking over the routing for pages it has generated static html pages, returning them instead of calling the page controllers.
+Relative resource path needs to be set also to use this (read more on `StaticWeb:UseResourceUrl`).
+By default this is set to "false".
