@@ -152,7 +152,7 @@ namespace StaticWebEpiserverPlugin.Services
 
             if (!Directory.Exists(_rootPath + _resourcePath))
             {
-                throw new ArgumentException("Folder specified in 'StaticWeb:ResourceFolder' doesn't exist. It must be a subfolder to 'StaticWeb:OutputFolder", "StaticWeb:ResourceFolder");
+                Directory.CreateDirectory(_rootPath + _resourcePath);
             }
 
             try
