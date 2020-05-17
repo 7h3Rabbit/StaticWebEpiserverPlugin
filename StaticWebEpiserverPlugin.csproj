@@ -202,6 +202,11 @@
   <ItemGroup>
     <Compile Include="Channels\StaticWebChannel.cs" />
     <Compile Include="Configuration\StaticWebConfiguration.cs" />
+    <Compile Include="Configuration\StaticWebConfigurationSection.cs" />
+    <Compile Include="Configuration\AllowedResourceTypeConfigurationElement.cs" />
+    <Compile Include="Configuration\SiteConfigurationElement.cs" />
+    <Compile Include="Configuration\AllowedResourceTypeConfigurationElementCollection.cs" />
+    <Compile Include="Configuration\SiteConfigurationElementCollection.cs" />
     <Compile Include="Events\StaticWebGeneratePageEventArgs.cs" />
     <Compile Include="Initialization\StaticWebDisplayModesInitialization.cs" />
     <Compile Include="Interfaces\IStaticWebIgnoreGenerate.cs" />

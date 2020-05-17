@@ -35,7 +35,7 @@ namespace StaticWebEpiserverPlugin.Services
         {
         }
 
-        public void RemoveGeneratedPage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language)
+        public void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -65,7 +65,7 @@ namespace StaticWebEpiserverPlugin.Services
             File.Delete(configuration.OutputPath + relativePath + "index.html");
         }
 
-        public void GeneratePage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+        public void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -233,7 +233,7 @@ namespace StaticWebEpiserverPlugin.Services
             return orginalUrl;
         }
 
-        public void GeneratePagesDependingOnBlock(StaticWebSiteConfigurationElement configuration, ContentReference contentLink)
+        public void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -304,7 +304,7 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected static string EnsurePageResources(StaticWebSiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null)
+        protected static string EnsurePageResources(SiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -349,7 +349,7 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected static void EnsureSourceTagSupport(StaticWebSiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
+        protected static void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -403,7 +403,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgTagSupport(StaticWebSiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
+        protected static void EnsureScriptAndLinkAndImgTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -512,38 +512,22 @@ namespace StaticWebEpiserverPlugin.Services
             var extension = GetExtension(resourceUrl);
             switch (extension)
             {
-                case ".css":
-                case ".js":
-                case ".woff":
-                case ".woff2":
-                case ".png":
-                case ".jpg":
-                case ".jpeg":
-                case ".jpe":
-                case ".gif":
-                case ".webp":
-                case ".svg":
-                case ".ico":
-                case ".pdf":
-                    return false;
                 case ".axd": // Assembly Web Resouces (Will validate against content-type)
                     // We only allow .axd when using hash (else we will overwrite same file with different content)
                     return !useHash;
-                case ".bmp":
-                case ".mp4":
-                case ".flv":
-                case ".webm":
-                case ".html":
-                case ".htm":
-                    // don't download of this extensions
-                    return true;
                 case "":
                     // missing extension, download and look at contenttype
                     // this happens for script and css bundles for examples
                     return false;
                 default:
-                    // unkown extension, ignore
-                    return true;
+                    var allowedExtensionConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.FileExtension == extension);
+                    if (allowedExtensionConfig == null)
+                    {
+                        // unkown extension, ignore
+                        return true;
+                    }
+                    // extension is allowed, download it
+                    return false;
             }
         }
 
@@ -562,7 +546,7 @@ namespace StaticWebEpiserverPlugin.Services
                 data = referencableClient.DownloadData(rootUrl + resourceUrl);
                 result.Data = data;
             }
-            catch (WebException)
+            catch (WebException ex)
             {
                 return null;
             }
@@ -611,30 +595,11 @@ namespace StaticWebEpiserverPlugin.Services
 
             contentType = contentType.Trim().ToLower();
 
-            switch (contentType)
-            {
-                case "text/css":
-                    return ".css";
-                case "image/svg+xml":
-                    return ".svg";
-                case "text/javascript":
-                case "application/javascript":
-                case "application/x-javascript":
-                    return ".js";
-                case "image/png":
-                case "image/jpg":
-                case "image/jpe":
-                case "image/jpeg":
-                case "image/gif":
-                case "image/webp":
-                case "application/pdf":
-                    // Let us get file extension (for example: .png)
-                    var fileExtension = "." + contentType.Split(new[] { "/" }, StringSplitOptions.RemoveEmptyEntries)[1];
-                    return fileExtension;
-                default:
-                    // we don't want to download unknown content type so no need to support more
-                    return null;
-            }
+            var typeConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.MimeType == contentType);
+            if (typeConfig == null)
+                return null;
+
+            return typeConfig.FileExtension;
         }
 
         protected static string GetNewResourceUrl(string resourcePath, string resourceUrl, string extension, byte[] data, bool useHash = true, bool useResourceUrl = false)

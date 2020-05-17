@@ -20,7 +20,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             DependencyResolver.SetResolver(new StaticWebServiceLocatorDependencyResolver(context.Locate.Advanced));
 
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            var configuration = StaticWebConfiguration.Current;
+            var configuration = StaticWebConfiguration.CurrentSite;
             if (configuration != null && configuration.Enabled && configuration.UseRouting)
             {
                 StaticWebRouting.LoadRoutes();
@@ -38,7 +38,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                 return;
             }
 
-            var configuration = StaticWebConfiguration.Current;
+            var configuration = StaticWebConfiguration.CurrentSite;
             if (configuration == null || !configuration.Enabled)
             {
                 return;

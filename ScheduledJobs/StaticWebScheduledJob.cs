@@ -107,7 +107,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             return resultMessage.ToString();
         }
 
-        protected void GeneratePageInAllLanguages(StaticWebSiteConfigurationElement configuration, PageData page)
+        protected void GeneratePageInAllLanguages(SiteConfigurationElement configuration, PageData page)
         {
             // Only add pages once (have have this because of how websites can be setup to have a circle reference
             if (page.ContentLink == null || _generatedPages.ContainsKey(page.ContentLink.ID))
@@ -173,7 +173,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
         }
 
-        protected void UpdateScheduledJobStatus(StaticWebSiteConfigurationElement configuration, PageData page, CultureInfo lang)
+        protected void UpdateScheduledJobStatus(SiteConfigurationElement configuration, PageData page, CultureInfo lang)
         {
             var orginalUrl = _urlResolver.GetUrl(page.ContentLink.ToReferenceWithoutVersion(), lang.Name);
             if (orginalUrl == null)
