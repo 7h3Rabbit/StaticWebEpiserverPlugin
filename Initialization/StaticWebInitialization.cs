@@ -3,6 +3,7 @@ using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
+using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
@@ -19,7 +20,8 @@ namespace StaticWebEpiserverPlugin.Initialization
             DependencyResolver.SetResolver(new StaticWebServiceLocatorDependencyResolver(context.Locate.Advanced));
 
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            if (staticWebService.UseRouting)
+            var configuration = StaticWebConfiguration.CurrentSite;
+            if (configuration != null && configuration.Enabled && configuration.UseRouting)
             {
                 StaticWebRouting.LoadRoutes();
             }
@@ -36,15 +38,17 @@ namespace StaticWebEpiserverPlugin.Initialization
                 return;
             }
 
+            var configuration = StaticWebConfiguration.CurrentSite;
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
             if (e.Content is PageData)
             {
                 var contentLink = e.ContentLink;
                 var page = e.Content as PageData;
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-                if (!staticWebService.Enabled)
-                {
-                    return;
-                }
 
                 // This page type has a conditional for when we should generate it
                 if (e.Content is IStaticWebIgnoreGenerateDynamically generateDynamically)
@@ -53,7 +57,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                     {
                         if (generateDynamically.ShouldDeleteGenerated())
                         {
-                            staticWebService.RemoveGeneratedPage(contentLink, page.Language);
+                            staticWebService.RemoveGeneratedPage(configuration, contentLink, page.Language);
                         }
 
                         // This page should not be generated at this time, ignore it.
@@ -61,18 +65,13 @@ namespace StaticWebEpiserverPlugin.Initialization
                     }
                 }
 
-                staticWebService.GeneratePage(contentLink, page.Language);
+                staticWebService.GeneratePage(configuration, contentLink, page.Language);
             }
             else if (e.Content is BlockData)
             {
                 var block = e.Content as BlockData;
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-                if (!staticWebService.Enabled)
-                {
-                    return;
-                }
-
-                staticWebService.GeneratePagesDependingOnBlock(e.ContentLink);
+                staticWebService.GeneratePagesDependingOnBlock(configuration, e.ContentLink);
             }
         }
 

@@ -3,13 +3,13 @@ using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Events;
 using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Models;
 using StaticWebEpiserverPlugin.Routing;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,14 +21,6 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class StaticWebService : IStaticWebService
     {
-        protected string _rootUrl = null;
-        private bool _useHash;
-        private bool _useResourceUrl;
-        private bool _useRouting;
-        protected string _resourcePath = null;
-        protected string _rootPath = null;
-        protected bool _enabled = true;
-
         public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGeneratePage;
         public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGetPageContent;
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGetPageContent;
@@ -39,165 +31,13 @@ namespace StaticWebEpiserverPlugin.Services
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePage;
 
-        public bool Enabled
-        {
-            get
-            {
-                return !string.IsNullOrEmpty(_rootPath + _resourcePath + _rootUrl);
-            }
-        }
-
-        public bool UseRouting { get { return Enabled && _useRouting; } }
-        public bool UseHash { get { return Enabled && _useHash; } }
-        public bool UseResourceUrl { get { return Enabled && _useResourceUrl; } }
-        public string RootPath { get { return Enabled ?  _rootPath : string.Empty; } }
-        public string ResourcePath { get { return Enabled ? _resourcePath : string.Empty; } }
-
         public StaticWebService()
         {
-            _rootPath = ConfigurationManager.AppSettings["StaticWeb:OutputFolder"];
-            _resourcePath = ConfigurationManager.AppSettings["StaticWeb:ResourceFolder"];
-            _rootUrl = ConfigurationManager.AppSettings["StaticWeb:InputUrl"];
-
-            _useHash = ConfigurationManager.AppSettings["StaticWeb:UseContentHash"] == "true";
-            _useResourceUrl = ConfigurationManager.AppSettings["StaticWeb:UseResourceUrl"] == "true";
-            _useRouting = ConfigurationManager.AppSettings["StaticWeb:UseRouting"] == "true";
-
-            if (Enabled)
-            {
-                ValidateOutputFolder();
-                ValidateResourceFolder();
-                ValidateInputUrl();
-                ValidateResourceNaming();
-            }
         }
 
-        private void ValidateResourceNaming()
+        public void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language)
         {
-            if (!_useResourceUrl)
-            {
-                // One of them needs to be true, use hashing as default option
-                _useHash = true;
-            }
-        }
-
-        protected void ValidateInputUrl()
-        {
-            if (string.IsNullOrEmpty(_rootUrl))
-            {
-                throw new ArgumentException("Missing value for 'StaticWeb:InputUrl'", "StaticWeb:InputUrl");
-            }
-
-            try
-            {
-                // Try to parse as Uri to validate value
-                var testUrl = new Uri(_rootUrl);
-            }
-            catch (Exception)
-            {
-                throw new ArgumentException("Invalid value for 'StaticWeb:InputUrl'", "StaticWeb:InputUrl");
-            }
-        }
-
-        protected void ValidateOutputFolder()
-        {
-            if (string.IsNullOrEmpty(_rootPath))
-            {
-                throw new ArgumentException("Missing value for 'StaticWeb:OutputFolder'", "StaticWeb:OutputFolder");
-            }
-
-            if (!_rootPath.EndsWith("\\"))
-            {
-                // Make sure it can be combined with _resourcePath
-                _rootPath = _rootPath + "\\";
-            }
-
-
-            if (!Directory.Exists(_rootPath))
-            {
-                throw new ArgumentException("Folder specified in 'StaticWeb:OutputFolder' doesn't exist", "StaticWeb:OutputFolder");
-            }
-
-            try
-            {
-                var directory = new DirectoryInfo(_rootPath);
-                var directoryName = directory.FullName;
-
-                var fileName = directoryName + Path.DirectorySeparatorChar + ".staticweb-access-test";
-
-                // verifying write access
-                File.WriteAllText(fileName, "Verifying write access to folder");
-                // verify modify access
-                File.WriteAllText(fileName, "Verifying modify access to folder");
-                // verify delete access
-                File.Delete(fileName);
-
-            }
-            catch (UnauthorizedAccessException)
-            {
-                throw new ArgumentException("Not sufficient permissions for folder specified in 'StaticWeb:OutputFolder'. Require read, write and modify permissions", "StaticWeb:OutputFolder");
-            }
-            catch (Exception)
-            {
-                throw new ArgumentException("Unknown error when testing write, edit and remove access to folder specified in 'StaticWeb:OutputFolder'", "StaticWeb:OutputFolder");
-            }
-        }
-
-        protected void ValidateResourceFolder()
-        {
-            if (string.IsNullOrEmpty(_resourcePath))
-            {
-                _resourcePath = "";
-            }
-
-            if (!Directory.Exists(_rootPath + _resourcePath))
-            {
-                Directory.CreateDirectory(_rootPath + _resourcePath);
-            }
-
-            try
-            {
-                var directory = new DirectoryInfo(_rootPath + _resourcePath);
-                var directoryName = directory.FullName;
-
-                // Check if it looks like we are in a EpiServer application
-                // - if TRUE, throw exception and tell them this is not allowed (resource folder is required to be a subfolder)
-                // - if FALSE, continue as usual.
-                var appDirectory = new DirectoryInfo(Environment.CurrentDirectory);
-                if (directoryName == appDirectory.FullName)
-                {
-                    throw new ArgumentException($"'StaticWeb:ResourceFolder' can't be the application folder (read: {appDirectory.FullName}). You can change this by setting 'StaticWeb:ResourceFolder", "StaticWeb:ResourceFolder");
-                }
-                appDirectory = new DirectoryInfo(AppContext.BaseDirectory);
-                if (directoryName == appDirectory.FullName)
-                {
-                    throw new ArgumentException($"'StaticWeb:ResourceFolder' can't be the application folder (read: {appDirectory.FullName}). You can change this by setting 'StaticWeb:ResourceFolder", "StaticWeb:ResourceFolder");
-                }
-
-                var fileName = directoryName + Path.DirectorySeparatorChar + ".staticweb-access-test";
-
-                // verifying write access
-                File.WriteAllText(fileName, "Verifying write access to folder");
-                // verify modify access
-                File.WriteAllText(fileName, "Verifying modify access to folder");
-                // verify delete access
-                File.Delete(fileName);
-
-            }
-            catch (UnauthorizedAccessException)
-            {
-                throw new ArgumentException("Not sufficient permissions for folder specified in 'StaticWeb:ResourceFolder'. Require read, write and modify permissions", "StaticWeb:ResourceFolder");
-            }
-            catch (Exception)
-            {
-                throw new ArgumentException("Unknown error when testing write, edit and remove access to folder specified in 'StaticWeb:ResourceFolder'", "StaticWeb:ResourceFolder");
-            }
-        }
-
-
-        public void RemoveGeneratedPage(ContentReference contentLink, CultureInfo language)
-        {
-            if (!Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -210,24 +50,24 @@ namespace StaticWebEpiserverPlugin.Services
 
             string relativePath = GetPageRelativePath(orginalUrl);
 
-            if (!Directory.Exists(_rootPath + relativePath))
+            if (!Directory.Exists(configuration.OutputPath + relativePath))
             {
                 // Directory doesn't exist, nothing to remove :)
                 return;
             }
 
-            if (!File.Exists(_rootPath + relativePath + "index.html"))
+            if (!File.Exists(configuration.OutputPath + relativePath + "index.html"))
             {
                 // File doesn't exist, nothing to remove :)
                 return;
             }
 
-            File.Delete(_rootPath + relativePath + "index.html");
+            File.Delete(configuration.OutputPath + relativePath + "index.html");
         }
 
-        public void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+        public void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
         {
-            if (!Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -254,13 +94,13 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
 
             string relativePath = GetPageRelativePath(orginalUrl);
-            generatePageEvent.PageUrl = _rootUrl + orginalUrl;
+            generatePageEvent.PageUrl = configuration.Url + orginalUrl;
 
             BeforeGetPageContent?.Invoke(this, generatePageEvent);
 
             string html = null;
 
-            if (UseRouting)
+            if (configuration.UseRouting)
             {
                 StaticWebRouting.Remove(relativePath);
             }
@@ -297,7 +137,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = EnsurePageResources(_rootUrl, _rootPath, _resourcePath, generatePageEvent.Content, generatePageEvent.CurrentResources, generatePageEvent.Resources, _useHash, _useResourceUrl);
+                generatePageEvent.Content = EnsurePageResources(configuration, generatePageEvent.Content, generatePageEvent.CurrentResources, generatePageEvent.Resources);
             }
 
             // reset cancel action and reason
@@ -307,7 +147,7 @@ namespace StaticWebEpiserverPlugin.Services
             // We don't care about a cancel action here
             AfterEnsurePageResources?.Invoke(this, generatePageEvent);
 
-            string filePath = _rootPath + relativePath + "index.html";
+            string filePath = configuration.OutputPath + relativePath + "index.html";
             generatePageEvent.FilePath = filePath;
 
             // reset cancel action and reason
@@ -318,14 +158,14 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel this page write.
             if (!generatePageEvent.CancelAction)
             {
-                if (!Directory.Exists(_rootPath + relativePath))
+                if (!Directory.Exists(configuration.OutputPath + relativePath))
                 {
-                    Directory.CreateDirectory(_rootPath + relativePath);
+                    Directory.CreateDirectory(configuration.OutputPath + relativePath);
                 }
 
                 File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
 
-                if (UseRouting)
+                if (configuration.UseRouting)
                 {
                     StaticWebRouting.Add(relativePath);
                 }
@@ -339,7 +179,7 @@ namespace StaticWebEpiserverPlugin.Services
             AfterGeneratePage?.Invoke(this, generatePageEvent);
         }
 
-        private static string GetPageContent(StaticWebGeneratePageEventArgs generatePageEvent)
+        protected static string GetPageContent(StaticWebGeneratePageEventArgs generatePageEvent)
         {
             WebClient webClient = new WebClient();
             webClient.Headers.Set(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36 StaticWebPlugin/0.1");
@@ -357,7 +197,7 @@ namespace StaticWebEpiserverPlugin.Services
             return null;
         }
 
-        private static string GetPageRelativePath(string orginalUrl)
+        protected static string GetPageRelativePath(string orginalUrl)
         {
             var relativePath = orginalUrl.Replace("/", @"\");
             if (!relativePath.StartsWith(@"\"))
@@ -372,7 +212,7 @@ namespace StaticWebEpiserverPlugin.Services
             return relativePath;
         }
 
-        private static string GetPageUrl(ContentReference contentLink, CultureInfo language)
+        protected static string GetPageUrl(ContentReference contentLink, CultureInfo language)
         {
             var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
             string orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
@@ -393,9 +233,9 @@ namespace StaticWebEpiserverPlugin.Services
             return orginalUrl;
         }
 
-        public void GeneratePagesDependingOnBlock(ContentReference contentLink)
+        public void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink)
         {
-            if (!Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -418,7 +258,7 @@ namespace StaticWebEpiserverPlugin.Services
                     {
                         if (generateDynamically.ShouldDeleteGenerated())
                         {
-                            RemoveGeneratedPage(contentLink, page.Language);
+                            RemoveGeneratedPage(configuration, contentLink, page.Language);
                         }
 
                         // This page should not be generated at this time, ignore it.
@@ -429,7 +269,7 @@ namespace StaticWebEpiserverPlugin.Services
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
                 {
-                    GeneratePage(page.ContentLink, lang);
+                    GeneratePage(configuration, page.ContentLink, lang);
                 }
             }
         }
@@ -464,8 +304,13 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected static string EnsurePageResources(string rootUrl, string rootPath, string resourcePath, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsurePageResources(SiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null)
         {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return html;
+            }
+
             if (currentPageResourcePairs == null)
             {
                 currentPageResourcePairs = new Dictionary<string, string>();
@@ -478,11 +323,11 @@ namespace StaticWebEpiserverPlugin.Services
 
             // make sure we have all resources from script, link and img tags for current page
             // <(script|link|img).*(href|src)="(?<resource>[^"]+)
-            EnsureScriptAndLinkAndImgTagSupport(rootUrl, rootPath, resourcePath, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useHash, useResourceUrl);
+            EnsureScriptAndLinkAndImgTagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs);
 
             // make sure we have all source resources for current page
             // <(source).*(srcset)="(?<resource>[^"]+)"
-            EnsureSourceTagSupport(rootUrl, rootPath, resourcePath, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useHash, useResourceUrl);
+            EnsureSourceTagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs);
 
             // TODO: make sure we have all meta resources for current page
             // Below matches ALL meta content that is a URL
@@ -504,8 +349,13 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected static void EnsureSourceTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
             var matches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<resource>[^\"|']+)[\"|']");
             foreach (Match match in matches)
             {
@@ -539,7 +389,7 @@ namespace StaticWebEpiserverPlugin.Services
                             continue;
                         }
 
-                        var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
+                        var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, configuration.UseHash, configuration.UseResourceUrl);
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
                             replaceResourcePairs.Add(resourceUrl, newResourceUrl);
@@ -553,8 +403,13 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgTagSupport(string rootUrl, string rootPath, string resourcePath, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static void EnsureScriptAndLinkAndImgTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
             var matches = Regex.Matches(html, "<(script|link|img).*(href|src)=[\"|'](?<resource>[^\"|']+)");
             foreach (Match match in matches)
             {
@@ -577,7 +432,7 @@ namespace StaticWebEpiserverPlugin.Services
                         continue;
                     }
 
-                    var newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useHash, useResourceUrl);
+                    var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, configuration.UseHash, configuration.UseResourceUrl);
                     if (!replaceResourcePairs.ContainsKey(resourceUrl))
                     {
                         replaceResourcePairs.Add(resourceUrl, newResourceUrl);
@@ -637,7 +492,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        private static bool IsDownloadPrevented(string resourceUrl, bool useHash)
+        protected static bool IsDownloadPrevented(string resourceUrl, bool useHash)
         {
             if (string.IsNullOrEmpty(resourceUrl))
             {
@@ -657,42 +512,26 @@ namespace StaticWebEpiserverPlugin.Services
             var extension = GetExtension(resourceUrl);
             switch (extension)
             {
-                case ".css":
-                case ".js":
-                case ".woff":
-                case ".woff2":
-                case ".png":
-                case ".jpg":
-                case ".jpeg":
-                case ".jpe":
-                case ".gif":
-                case ".webp":
-                case ".svg":
-                case ".ico":
-                case ".pdf":
-                    return false;
                 case ".axd": // Assembly Web Resouces (Will validate against content-type)
                     // We only allow .axd when using hash (else we will overwrite same file with different content)
                     return !useHash;
-                case ".bmp":
-                case ".mp4":
-                case ".flv":
-                case ".webm":
-                case ".html":
-                case ".htm":
-                    // don't download of this extensions
-                    return true;
                 case "":
                     // missing extension, download and look at contenttype
                     // this happens for script and css bundles for examples
                     return false;
                 default:
-                    // unkown extension, ignore
-                    return true;
+                    var allowedExtensionConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.FileExtension == extension);
+                    if (allowedExtensionConfig == null)
+                    {
+                        // unkown extension, ignore
+                        return true;
+                    }
+                    // extension is allowed, download it
+                    return false;
             }
         }
 
-        private static StaticWebDownloadResult DownloadResource(string rootUrl, string resourceUrl, string extension, bool useHash)
+        protected static StaticWebDownloadResult DownloadResource(string rootUrl, string resourceUrl, string extension, bool useHash)
         {
             StaticWebDownloadResult result = new StaticWebDownloadResult();
 
@@ -707,7 +546,7 @@ namespace StaticWebEpiserverPlugin.Services
                 data = referencableClient.DownloadData(rootUrl + resourceUrl);
                 result.Data = data;
             }
-            catch (WebException)
+            catch (WebException ex)
             {
                 return null;
             }
@@ -738,7 +577,7 @@ namespace StaticWebEpiserverPlugin.Services
             return result;
         }
 
-        private static string GetExtension(string url)
+        protected static string GetExtension(string url)
         {
             // remove '?' and '#' info from url
             url = EnsureUrlWithoutParams(url);
@@ -747,7 +586,7 @@ namespace StaticWebEpiserverPlugin.Services
             return extension;
         }
 
-        private static string GetExtensionForKnownContentType(string contentType)
+        protected static string GetExtensionForKnownContentType(string contentType)
         {
             if (string.IsNullOrEmpty(contentType))
             {
@@ -756,33 +595,14 @@ namespace StaticWebEpiserverPlugin.Services
 
             contentType = contentType.Trim().ToLower();
 
-            switch (contentType)
-            {
-                case "text/css":
-                    return ".css";
-                case "image/svg+xml":
-                    return ".svg";
-                case "text/javascript":
-                case "application/javascript":
-                case "application/x-javascript":
-                    return ".js";
-                case "image/png":
-                case "image/jpg":
-                case "image/jpe":
-                case "image/jpeg":
-                case "image/gif":
-                case "image/webp":
-                case "application/pdf":
-                    // Let us get file extension (for example: .png)
-                    var fileExtension = "." + contentType.Split(new[] { "/" }, StringSplitOptions.RemoveEmptyEntries)[1];
-                    return fileExtension;
-                default:
-                    // we don't want to download unknown content type so no need to support more
-                    return null;
-            }
+            var typeConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.MimeType == contentType);
+            if (typeConfig == null)
+                return null;
+
+            return typeConfig.FileExtension;
         }
 
-        protected static string GetNewResourceUrl(string resourcePath, string resourceUrl, string extension, byte[] data, bool useHash=true, bool useResourceUrl=false)
+        protected static string GetNewResourceUrl(string resourcePath, string resourceUrl, string extension, byte[] data, bool useHash = true, bool useResourceUrl = false)
         {
             if (useResourceUrl)
             {
@@ -927,7 +747,6 @@ namespace StaticWebEpiserverPlugin.Services
 
             return url;
         }
-
 
         protected static string EnsureFileSystemValid(string filepath)
         {
