@@ -39,7 +39,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             }
 
             var configuration = StaticWebConfiguration.Current;
-            if (configuration != null && configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }

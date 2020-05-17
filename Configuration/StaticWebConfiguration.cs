@@ -72,7 +72,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             }
 
             var hosts = definition.Hosts.ToList();
-            currentConfig = AvailableSites.FirstOrDefault(s => hosts.Any(h => h.Url.ToString() == s.Url));
+            currentConfig = AvailableSites.FirstOrDefault(s => hosts.Any(h => h.Url != null && h.Url.ToString() == s.Url));
             if (currentConfig == null)
             {
                 return null;

@@ -65,7 +65,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             foreach (var siteDefinition in siteDefinitions)
             {
                 var configuration = StaticWebConfiguration.Get(siteDefinition);
-                if (configuration != null && configuration.Enabled)
+                if (configuration == null || !configuration.Enabled)
                 {
                     continue;
                 }

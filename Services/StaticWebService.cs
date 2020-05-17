@@ -37,7 +37,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         public void RemoveGeneratedPage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -67,7 +67,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         public void GeneratePage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -235,7 +235,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         public void GeneratePagesDependingOnBlock(StaticWebSiteConfigurationElement configuration, ContentReference contentLink)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -306,7 +306,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         protected static string EnsurePageResources(StaticWebSiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return html;
             }
@@ -351,7 +351,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         protected static void EnsureSourceTagSupport(StaticWebSiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -405,7 +405,7 @@ namespace StaticWebEpiserverPlugin.Services
 
         protected static void EnsureScriptAndLinkAndImgTagSupport(StaticWebSiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
-            if (configuration != null && !configuration.Enabled)
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
