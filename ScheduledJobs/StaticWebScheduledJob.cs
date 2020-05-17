@@ -5,12 +5,15 @@ using EPiServer.Scheduler;
 using EPiServer.ServiceLocation;
 using EPiServer.Web;
 using EPiServer.Web.Routing;
+using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Web.Configuration;
 
 namespace StaticWebEpiserverPlugin.ScheduledJobs
 {
@@ -51,32 +54,48 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             //Call OnStatusChanged to periodically notify progress of job for manually started jobs
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
-            if (!_staticWebService.Enabled)
-            {
-                return "StaticWeb is not enabled! Add 'StaticWeb:InputUrl' and 'StaticWeb:OutputFolder' under 'appSettings' element in web.config";
-            }
-
             // Setting number of pages to start value (0), it is used to show message after job is done
             _numberOfPages = 0;
             _generatedPages = new Dictionary<int, string>();
             _generatedResources = new Dictionary<string, string>();
 
-            //Add implementation
-            var startPage = SiteDefinition.Current.StartPage.ToReferenceWithoutVersion();
-
-            var page = _contentRepository.Get<PageData>(startPage);
-            GeneratePageInAllLanguages(page);
-
-            if (_staticWebService.UseRouting)
+            var siteDefinitionRepository = ServiceLocator.Current.GetInstance<ISiteDefinitionRepository>();
+            var siteDefinitions = siteDefinitionRepository.List();
+            var hasAnyMatchingConfiguration = false;
+            foreach (var siteDefinition in siteDefinitions)
             {
-                OnStatusChanged("Saving routes to file");
-                StaticWebRouting.SaveRoutes();
+                var configuration = StaticWebConfiguration.Get(siteDefinition);
+                if (configuration != null && configuration.Enabled)
+                {
+                    continue;
+                }
+                hasAnyMatchingConfiguration = true;
+
+                // This website has been setup for using StaticWebEpiServerPlugin
+                SiteDefinition.Current = siteDefinition;
+
+                //Add implementation
+                var startPage = SiteDefinition.Current.StartPage.ToReferenceWithoutVersion();
+
+                var page = _contentRepository.Get<PageData>(startPage);
+                GeneratePageInAllLanguages(configuration, page);
+
+                if (configuration.UseRouting)
+                {
+                    OnStatusChanged("Saving routes to file");
+                    StaticWebRouting.SaveRoutes();
+                }
+            }
+
+            if (!hasAnyMatchingConfiguration)
+            {
+                return "StaticWeb is not enabled! Add 'StaticWeb:InputUrl' and 'StaticWeb:OutputFolder' under 'appSettings' element in web.config";
             }
 
             return $"{_numberOfPages} of pages where generated with all depending resources.";
         }
 
-        protected void GeneratePageInAllLanguages(PageData page)
+        protected void GeneratePageInAllLanguages(StaticWebSiteConfigurationElement configuration, PageData page)
         {
             // Only add pages once (have have this because of how websites can be setup to have a circle reference
             if (page.ContentLink == null || _generatedPages.ContainsKey(page.ContentLink.ID))
@@ -109,7 +128,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     {
                         if (generateDynamically.ShouldDeleteGenerated())
                         {
-                            _staticWebService.RemoveGeneratedPage(langContentLink, lang);
+                            _staticWebService.RemoveGeneratedPage(configuration, langContentLink, lang);
                         }
 
                         // This page should not be generated at this time, ignore it.
@@ -117,13 +136,13 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     }
                 }
 
-                _staticWebService.GeneratePage(langContentLink, lang, _generatedResources);
+                _staticWebService.GeneratePage(configuration, langContentLink, lang, _generatedResources);
                 _numberOfPages++;
 
                 var children = _contentRepository.GetChildren<PageData>(langContentLink, lang);
                 foreach (PageData child in children)
                 {
-                    GeneratePageInAllLanguages(child);
+                    GeneratePageInAllLanguages(configuration, child);
 
                     //For long running jobs periodically check if stop is signaled and if so stop execution
                     if (_stopSignaled)

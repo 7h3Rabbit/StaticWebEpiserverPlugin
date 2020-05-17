@@ -1,4 +1,5 @@
 ﻿using EPiServer.Core;
+using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Events;
 using System;
 using System.Collections.Generic;
@@ -8,17 +9,6 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public interface IStaticWebService
     {
-        /// <summary>
-        /// Shows if service is usable or not.
-        /// Will return false if following settings are not set in web.config 'StaticWeb:OutputFolder' and 'StaticWeb:InputUrl'.
-        /// </summary>
-        bool Enabled { get; }
-        bool UseRouting { get; }
-        bool UseHash { get; }
-        bool UseResourceUrl { get; }
-        string RootPath { get; }
-        string ResourcePath { get; }
-
         /// <summary>
         /// First thing happening when GeneratePage is called.
         /// StaticWebGeneratePageEventArg is populated with following info: ContentLink, CultureInfo.
@@ -73,8 +63,8 @@ namespace StaticWebEpiserverPlugin.Services
         /// </summary>
         event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
 
-        void GeneratePage(ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
-        void GeneratePagesDependingOnBlock(ContentReference contentLink);
-        void RemoveGeneratedPage(ContentReference contentLink, CultureInfo language);
+        void GeneratePage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
+        void GeneratePagesDependingOnBlock(StaticWebSiteConfigurationElement configuration, ContentReference contentLink);
+        void RemoveGeneratedPage(StaticWebSiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language);
     }
 }
