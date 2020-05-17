@@ -45,7 +45,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             };
         }
 
-        public static StaticWebSiteElementCollection GetSites()
+        public static StaticWebSiteConfigurationElementCollection GetSites()
         {
             return _Config.Sites;
         }
@@ -86,14 +86,14 @@ namespace StaticWebEpiserverPlugin.Configuration
     public class StaticWebConfigurationSection : ConfigurationSection
     {
         [ConfigurationProperty("sites")]
-        public StaticWebSiteElementCollection Sites
+        public StaticWebSiteConfigurationElementCollection Sites
         {
-            get { return (StaticWebSiteElementCollection)this["sites"]; }
+            get { return (StaticWebSiteConfigurationElementCollection)this["sites"]; }
         }
     }
 
     [ConfigurationCollection(typeof(StaticWebSiteConfigurationElement))]
-    public class StaticWebSiteElementCollection : ConfigurationElementCollection
+    public class StaticWebSiteConfigurationElementCollection : ConfigurationElementCollection
     {
         public StaticWebSiteConfigurationElement this[int index]
         {
