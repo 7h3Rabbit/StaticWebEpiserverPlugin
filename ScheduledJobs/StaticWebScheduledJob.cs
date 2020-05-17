@@ -13,11 +13,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Web.Configuration;
+using System.Text;
 
 namespace StaticWebEpiserverPlugin.ScheduledJobs
 {
-    [ScheduledPlugIn(DisplayName = "Generate StaticWeb", GUID = "da758e76-02ec-449e-8b34-999769cafb68")]
+    [ScheduledPlugIn(DisplayName = "Generate StaticWeb", SortIndex = 100000, GUID = "da758e76-02ec-449e-8b34-999769cafb68")]
     public class StaticWebScheduledJob : ScheduledJobBase
     {
         protected bool _stopSignaled;
@@ -55,18 +55,28 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
             // Setting number of pages to start value (0), it is used to show message after job is done
-            _numberOfPages = 0;
             _generatedPages = new Dictionary<int, string>();
             _generatedResources = new Dictionary<string, string>();
+            StringBuilder resultMessage = new StringBuilder();
 
             var siteDefinitionRepository = ServiceLocator.Current.GetInstance<ISiteDefinitionRepository>();
-            var siteDefinitions = siteDefinitionRepository.List();
+            var siteDefinitions = siteDefinitionRepository.List().ToList();
             var hasAnyMatchingConfiguration = false;
+            var numberOfSiteDefinitions = siteDefinitions.Count;
             foreach (var siteDefinition in siteDefinitions)
             {
+                _numberOfPages = 0;
                 var configuration = StaticWebConfiguration.Get(siteDefinition);
                 if (configuration == null || !configuration.Enabled)
                 {
+                    if (configuration != null && !string.IsNullOrEmpty(configuration.Name))
+                    {
+                        resultMessage.AppendLine($"<div class=\"ui-state-error\"><b>{configuration.Name}</b> - Was ignored because not enabled or missing required settings.<br /></div>");
+                    }
+                    else
+                    {
+                        resultMessage.AppendLine($"<div class=\"ui-state-error\"><b>{siteDefinition.Name}</b> - Was ignored because it was not configured.<br /></div>");
+                    }
                     continue;
                 }
                 hasAnyMatchingConfiguration = true;
@@ -85,6 +95,8 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     OnStatusChanged("Saving routes to file");
                     StaticWebRouting.SaveRoutes();
                 }
+
+                resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_numberOfPages} pages generated.<br />");
             }
 
             if (!hasAnyMatchingConfiguration)
@@ -92,7 +104,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 return "StaticWeb is not enabled! Add 'StaticWeb:InputUrl' and 'StaticWeb:OutputFolder' under 'appSettings' element in web.config";
             }
 
-            return $"{_numberOfPages} of pages where generated with all depending resources.";
+            return resultMessage.ToString();
         }
 
         protected void GeneratePageInAllLanguages(StaticWebSiteConfigurationElement configuration, PageData page)
@@ -117,7 +129,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             {
                 var langPage = _contentRepository.Get<PageData>(page.ContentLink.ToReferenceWithoutVersion(), lang);
 
-                UpdateScheduledJobStatus(page, lang);
+                UpdateScheduledJobStatus(configuration, page, lang);
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
 
@@ -161,7 +173,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
         }
 
-        protected void UpdateScheduledJobStatus(PageData page, CultureInfo lang)
+        protected void UpdateScheduledJobStatus(StaticWebSiteConfigurationElement configuration, PageData page, CultureInfo lang)
         {
             var orginalUrl = _urlResolver.GetUrl(page.ContentLink.ToReferenceWithoutVersion(), lang.Name);
             if (orginalUrl == null)
@@ -178,7 +190,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 orginalUrl = new Uri(orginalUrl).AbsolutePath;
             }
 
-            OnStatusChanged($"Generating page -  {orginalUrl}");
+            OnStatusChanged($"{configuration.Name} - {_numberOfPages} pages generated. currently on: {orginalUrl}");
         }
     }
 }
