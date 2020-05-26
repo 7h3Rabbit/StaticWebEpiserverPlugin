@@ -115,32 +115,93 @@ The rest will be ignored.
 
 ### GitHub Source download ###
 - Copy `StaticWebEpiserverPlugin` folder and add `StaticWebEpiserverPlugin.csproj` into your solution.
+- Add below into: `<configSections>` element of `web.config`
+`<section name="staticweb" type="StaticWebEpiserverPlugin.Configuration.StaticWebConfigurationSection" />`
+- Add below to the same level as `appSettings` element (for example right below the end tag)
+- `<staticweb>`
+    - `<sites>`
+        - `<add`
+                `name="Test Website"`
+                `enabled="true/false"` (default: `true`)
+                `url=""`
+                `outoutPath=""`
+                `resourceFolder=""`
+                `useRouting="true/false"`  (default: `false`)
+                `useHash="true/false"` (default: `true`)
+                `useResourceUrl="true/false"` (default: `false`)
+                ` />`
+`	<staticweb>
+		<sites>
+			<add name="ExampleSite1" url="http://localhost:49822/" outputPath="C:\code\Test\A" resourceFolder="cache\v1"/>
+		</sites>
+	</staticweb>
+`
+
+into the: `<configSections>` element of `web.config`.
+
+
+
+
 - added new property `StaticWeb:OutputFolder` to appSettings section in Web.config (for example a GitHub repository folder). Example: `<add key="StaticWeb:OutputFolder" value="C:\inetpub\wwwroot" />`
 - added new property `StaticWeb:InputUrl` to appSettings section in Web.config (must allow anonymous access). Example: `<add key="StaticWeb:InputUrl" value="http://localhost:49822/" />`
 - You are ready to go :)
 
 
-## Additional Settings ##
+By doing so you unlock the use of StaticWeb configuration section:
+`	<staticweb>
+		<sites>
+			<add name="Example website1" url="http://localhost:49822/" outputPath="C:\code\Test\A" resourceFolder="cache\v1"/>
+		</sites>
+	</staticweb>
+`
 
-### `<add key="StaticWeb:ResourceFolder" value="cache\v1" />` ###
-Tells StaticWebEpiServerPlugin to use a subfolder `cache\v1` for all resources.
-By default this is set to "".
+## Site Configuration ##
 
-### `<add key="StaticWeb:UseContentHash" value="true" />` ###
+- `<staticweb>`
+    - `<sites>`
+        - `<add`
+                `name=""`
+                `enabled="true/false"` (default: `true`)
+                `url=""`
+                `outputPath=""`
+                `resourceFolder=""`
+                `useRouting="true/false"`  (default: `false`)
+                `useHash="true/false"` (default: `true`)
+                `useResourceUrl="true/false"` (default: `false`)
+                ` />`
+                
+### `<add name="Example Site 1"` (default: ``) ###
+Specifies a name for your website.
+If specified it will be used in Scheduled job status information.
+By default this is will use EpiServer site name if used.
 
-Tells StaticWebEpiServerPlugin to generate content hash and use for resource name.
-By default this is set to "true".
-_( This value has to be true to make .axd resources static)_
+### `<add enabled="true/false"` (default: `true`) ###
+Allows you to disable plugin by just changing configuration.
+Good if you temporarly want to disable plugin or if you on one server want to disable functionality (for example on editor only servers).
 
-### `<add key="StaticWeb:UseResourceUrl" value="false" />` ###
+### `<add url="http://localhost:49822/"` (_required_) ###
+Specifies url to use as base url for this website.
+Make sure it matches one specified in EpiServer under `Config` -> `Manage Websites.
 
-Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
-By default this is set to "false".
-_(If you also set `StaticWeb:UseContentHash` to true it will combine the two)_
+### `<add outputPath="C:\websites\website1\wwwroot"` (_required_) ###
+Folder to write your static website to.
+This can be any folder you have read, write and change access to.
+For example a GitHub repository folder, folder used directly by IIS or directly into your EpiServer website (look more at: `userRouting`).
 
+### `<add resourceFolder="cache\v1"` (default: ``) ###
+Sub folder of `outputPath` to write resources to.
+Above tells StaticWebEpiServerPlugin to use a subfolder `cache\v1` for all resources.
+You should also look at: `useHash` and `useResourceUrl`.
 
-### `<add key="StaticWeb:UseRouting" value="true" />` ###
-
+### `<add useRouting="true/false"` (default: `false`) ###
 By setting this to "true" you allow StaticWebEpiServerPlugin to write pages and resources inside a EpiServer instance and taking over the routing for pages it has generated static html pages, returning them instead of calling the page controllers.
-Relative resource path needs to be set also to use this (read more on `StaticWeb:UseResourceUrl`).
-By default this is set to "false".
+Relative resource path needs to be set also to use this (read more on `useResourceUrl`).
+
+### `<add useHash="true/false"` (default: `true`) ###
+Tells StaticWebEpiServerPlugin to generate content hash and use for resource name.
+_( This value has to be true to support .axd resources and make them static)_
+
+### `<add useResourceUrl="true/false"` (default: `false`) ###
+Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
+_(If you also set `useHash` to true it will combine the two)_
+
