@@ -93,7 +93,7 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
 
 The rest will be ignored.
 
-(Note: You can add or change supported resource types using `<allowedResourceTypes>`)
+(Note: You can add or change supported resource types using [`<allowedResourceTypes>`](#allowedresourcetypes-configuration))
 
 ## Requirements ##
 
