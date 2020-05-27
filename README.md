@@ -116,8 +116,19 @@ The rest will be ignored.
 
 ### NuGet ###
 - Add nuget package https://www.nuget.org/packages/StaticWebEpiserverPlugin/ to your solution.
-- added new property `StaticWeb:OutputFolder` to appSettings section in Web.config (for example a GitHub repository folder). Example: `<add key="StaticWeb:OutputFolder" value="C:\inetpub\wwwroot" />`
-- added new property `StaticWeb:InputUrl` to appSettings section in Web.config (must allow anonymous access). Example: `<add key="StaticWeb:InputUrl" value="http://localhost:49822/" />`
+- Add below into: `<configSections>` element of `web.config`
+`<section name="staticweb" type="StaticWebEpiserverPlugin.Configuration.StaticWebConfigurationSection" />`
+- Add below to the same level as `appSettings` element (for example right below the end tag)
+- `<staticweb>`
+    - `<sites>`
+        - `<add`
+                `name="Test Website"`
+                `url="http://localhost:49822/"`
+                `outputPath="C:\websites\website1\wwwroot"`
+                `resourceFolder="cache\v1"`
+                ` />`
+		
+- Change `url` and `outputPath` after your needs and you are ready to go :)
 - You are ready to go :)
 
 ### GitHub Source download ###
