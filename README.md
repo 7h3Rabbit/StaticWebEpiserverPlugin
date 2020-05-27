@@ -185,3 +185,29 @@ _( This value has to be true to support .axd resources and make them static)_
 Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
 _(If you also set `useHash` to true it will combine the two)_
 
+
+## AllowedResourceTypes Configuration ##
+With the `<allowedResourceTypes>` you can add, remove or change support for resource types.
+This is usefull if you for example want to extend support for more file extensions.
+
+The `<allowedResourceTypes>` should be a direct child element to the `<staticweb>` element in your web.config.
+Below you will find how it can be used.
+
+### Add/extend support for resource type ###
+Below illustrate how to extend the default resource types that are being supported by adding support for the .mp4 file extension and bind it to the video/mp4 mime type.
+
+	`<allowedResourceTypes>
+		<add fileExtension=".mp4" mimeType="video/mp4" />
+	</allowedResourceTypes>`
+
+### Define your own list of allowed resource types ###
+Below illustrate how to remove the default resource types and start from scratch.
+Allowing you to finetune exactly what resource types you support.
+In below example we only support resources with the following file extensions (and resources using mime type related to that): `.css`, `.js` and `.jpg`
+
+	`<allowedResourceTypes>
+		<clear />
+		<add fileExtension=".css" mimeType="text/css" />
+		<add fileExtension=".js" mimeType="text/javascript" />
+		<add fileExtension=".jpg" mimeType="image/jpg" />
+	</allowedResourceTypes>`
