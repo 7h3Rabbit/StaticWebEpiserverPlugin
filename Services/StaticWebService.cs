@@ -323,7 +323,7 @@ namespace StaticWebEpiserverPlugin.Services
 
             // make sure we have all resources from script, link and img tags for current page
             // <(script|link|img).*(href|src)="(?<resource>[^"]+)
-            EnsureScriptAndLinkAndImgTagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs);
+            EnsureScriptAndLinkAndImgAndATagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs);
 
             // make sure we have all source resources for current page
             // <(source).*(srcset)="(?<resource>[^"]+)"
@@ -403,14 +403,14 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
+        protected static void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
         {
             if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
 
-            var matches = Regex.Matches(html, "<(script|link|img).*(href|src)=[\"|'](?<resource>[^\"|']+)");
+            var matches = Regex.Matches(html, "<(script|link|img|a).*(href|src)=[\"|'](?<resource>[^\"|']+)");
             foreach (Match match in matches)
             {
                 var group = match.Groups["resource"];
