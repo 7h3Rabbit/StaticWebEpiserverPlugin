@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>1.1.0</version>
+    <version>2.0.0</version>
     <title>StaticWebEpiserverPlugin</title>
     <authors>7h3Rabbit</authors>
     <owners>7h3Rabbit</owners>
@@ -13,15 +13,35 @@
     <iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
     <description>Generate static website but still use EpiServer as your CMS for your editors</description>
     <releaseNotes>
+## BREAKING CHANGE ##
+Resource naming has been changed, set "StaticWeb:UseResourceUrl" to true and "StaticWeb:UseContentHash" to false to get old behavior.
+
 New features:
-- Adding possibility to consume events
-- Possibility to add Interfaces on page types you want to ignore
-- Possibility at runtime to ignore page
-- Improve documentation with more usecases
- 
+- Added support for using static pages inside your EpiServer installation
+- Added support for SVG-images (extension: .svg or content-type: image/svg+xml)
+- Added support for content-type: x-javascript
+- Added support for WebResource.axd and ScriptResource.axd
+- Added Visitor Group support, new criteria called "StaticWeb user" under "Technical" category
+- Now possible to specify sub folder for resources
+- Possible to disable StaticWebEpiServerPlugin from web.config
+- Default resource name is now a content hash
+- Possible to use old resource naming (by only use resource url for naming)
+- Possible to use both resource url and content hash for resource naming
+- Using new configuration element in web.config for settings
+- Add current number of pages generated ( in scheduled job )
+- Added support for resources from href attribute on a-element
+- Add ability to change supported file extensions and content types from default
+
 Bug fixes:
-- Make sure we are not downloading the same file more then once
-- Don't download resources on separate domain just because it uses relative protocol</releaseNotes>
+- We now support both ' and " for resource finding
+- Resources in CSS files are now added to references resources
+- IStaticWebIgnoreGenerate and IStaticWebIgnoreGenerateDynamically are now supported in scheduled job also
+- Scheduled job is not sending current referenced resources list to events (New property: CurrentResources)
+- Scheduled job "Generate StaticWeb" changes place in menu everytime
+
+Additional:
+- Added extension StaticWebEpiserverPlugin.RequiredCssOnly to allow for extraction of required CSS Only (for example to use as inline on every page)
+</releaseNotes>
     <copyright>Copyright 2020</copyright>
     <tags>episerver static-site-generator episerver-cms episerver-plugin plugin</tags>
     <dependencies>
