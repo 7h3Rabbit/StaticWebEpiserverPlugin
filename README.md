@@ -76,10 +76,11 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
 
 ### Following markup will searched for resources ###
 
-- script tag (src attribute)
-- link tag (href attribute)
-- img tag (src attribute)
-- source tag (srcset attribute)
+- script element (src attribute)
+- link element (href attribute)
+- a element (src attribute)
+- img element (src attribute)
+- source element (srcset attribute)
 
 ### Following resource types will be stored by default ###
   - css (and resources declared in url())
