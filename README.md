@@ -78,7 +78,7 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
 
 - script element (src attribute)
 - link element (href attribute)
-- a element (src attribute)
+- a element (href attribute)
 - img element (src attribute)
 - source element (srcset attribute)
 
