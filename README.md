@@ -46,7 +46,13 @@ To start the job, run the job called "Generate StaticWeb".
 
 ### Having different views for StaticWeb and normal users ###
 
+#### Using DisplayChannel ####
 StaticWeb is registering a displaychannel called "StaticWeb" (See [Header.cshtml](https://github.com/7h3Rabbit/EpiServerStaticWebExample/blob/master/EpiserverAlloy/Views/Shared/Header.cshtml) and [Header.staticweb.cshtml](https://github.com/7h3Rabbit/EpiServerStaticWebExample/blob/master/EpiserverAlloy/Views/Shared/Header.staticweb.cshtml) for examples on how to use it, can be found in [EpiServerStaticWebExample](https://github.com/7h3Rabbit/EpiServerStaticWebExample/) repository). It is perfect for removing functionality that can't be used in a static website (like filitering or search). It also makes it possible for you to view how the page will look and work on the static version.
+
+#### Using VisitorGroup ####
+StaticWeb is registering a criteria called "StaticWeb user" under "Technical" category so that you can create your own vistor groups.
+Making it possible to show different content for page generation and other users.
+If you for example is using StaticWebEpiServerPlugin for create a static emergency/reserve website to use if everything else fails.
 
 ### How to ignore page or block type? ###
 By inherit from `IStaticWebIgnoreGenerate` iterface on a page or block type you will tell StaticWeb NOT to generate a static version of this type when publishing or running the scheduled job.
