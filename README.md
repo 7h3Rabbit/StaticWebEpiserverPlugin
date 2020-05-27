@@ -15,7 +15,7 @@ It should (havn't yet test it) be possible to create the pages directory in your
 - No database dependency for visitor
 - No serverside code requried
 - Very secure (hard to hack static pages)
-- Supports having some pages dynamic and others generated static (see `UseRouting` below)
+- Supports having some pages dynamic and others generated static (see [`UseRouting`](#useroutingtruefalse-default-false) below)
 - Supports custom resource types (You can extend default or start from scratch using [`<allowedResourceTypes>`](#allowedresourcetypes-configuration))
 
 **Con/limitations**
