@@ -15,20 +15,16 @@ It should (havn't yet test it) be possible to create the pages directory in your
 - No database dependency for visitor
 - No serverside code requried
 - Very secure (hard to hack static pages)
+- Supports having some pages dynamic and others generated static (see `UseRouting` below)
+- Supports custom resource types (You can extend default or start from scratch using `<allowedResourceTypes>`)
 
 **Con/limitations**
 
-- No serverside dynamic content can be used
-- No serverside personalized content can be used
 - Only pages inheriting from PageData will trigger page write
 - Only block inheriting from BlockBata will trigger page write
-- Only supports following types:
+- Resource limitations:
   - css (only support dependencies declared in url())
   - javascript (no dependencies)
-  - Web fonts (woff and woff2)
-  - Images (png, jpg, jpeg, jpe, gif, webp)
-  - documents (pdf)
-  - Icons (ico)
   
 ## What functionality is provided in Plugin? ##
 
@@ -85,15 +81,18 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
 - img tag (src attribute)
 - source tag (srcset attribute)
 
-### Following resource types will be stored ###
+### Following resource types will be stored by default ###
   - css (and resources declared in url())
   - javascript (no dependencies)
   - Web fonts (woff and woff2)
-  - Images (png, jpg, jpeg, jpe, gif, webp)
+  - Images (png, jpg, jpeg, jpe, gif, webp, svg)
   - documents (pdf)
   - Icons (ico)
+  - Assembly Resources (WebResource.axd and ScriptResource.axd as long as resulting content type are allowed)
 
 The rest will be ignored.
+
+(Note: You can add or change supported resource types using `<allowedResourceTypes>`)
 
 ## Requirements ##
 
