@@ -17,6 +17,7 @@ It should (havn't yet test it) be possible to create the pages directory in your
 - Very secure (hard to hack static pages)
 - Supports having some pages dynamic and others generated static (see [`UseRouting`](#useroutingtruefalse-default-false) below)
 - Supports custom resource types (You can extend default or start from scratch using [`<allowedResourceTypes>`](#allowedresourcetypes-configuration))
+- Event driven page generation, always latest changes on your website (created when editor publish page or block)
 
 **Con/limitations**
 
