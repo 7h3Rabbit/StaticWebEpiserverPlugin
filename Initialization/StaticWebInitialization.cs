@@ -6,7 +6,6 @@ using EPiServer.Framework.Initialization;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
 using StaticWebEpiserverPlugin.Configuration;
-using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System.Collections.Generic;
@@ -52,37 +51,19 @@ namespace StaticWebEpiserverPlugin.Initialization
 
                 // Get urls for all language (as we are moving them all)
                 var contentReference = new ContentReference(e.Content.ContentLink.ID);
-                var languageUrls = GetPageLanguageUrls(staticWebService, contentRepository, contentReference);
+                var languageUrls = staticWebService.GetPageLanguageUrls(contentRepository, contentReference);
                 e.Items.Add("StaticWeb-OldLanguageUrls", languageUrls);
             }
         }
 
-        private static Dictionary<string,string> GetPageLanguageUrls(IStaticWebService staticWebService, IContentRepository contentRepository, ContentReference contentReference)
-        {
-            Dictionary<string, string> languageUrls = new Dictionary<string, string>();
-            PageData page;
-            if (contentRepository.TryGet<PageData>(contentReference, out page))
-            {
-                var languages = page.ExistingLanguages;
-                foreach (var lang in languages)
-                {
-                    var oldLangUrl = staticWebService.GetPageUrl(contentReference, lang);
-                    languageUrls.Add(lang.Name, oldLangUrl);
-                }
-            }
-            return languageUrls;
-        }
-
         private void OnContentSecuritySaved(object sender, ContentSecurityEventArg e)
         {
-            //_log.Information($"ContentSecuritySaved fired for content {e.ContentLink.ID}");
-            //var action = ContentAction.AccessRightsChanged;
+            //$"ContentSecuritySaved fired for content {e.ContentLink.ID}";
             //var affectedContent = new List<ContentReference>();
-            //var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
-            //var descendants = contentRepository.GetDescendents(e.ContentLink);
+            var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
+            var descendants = contentRepository.GetDescendents(e.ContentLink);
             //affectedContent.AddRange(descendants);
             //affectedContent.Add(e.ContentLink);
-            //ExtendedContentEvents.Instance.RaiseContentChangedEvent(new ContentChangedEventArgs(e.ContentLink, action, affectedContent));
         }
 
         private void OnPublishingContent(object sender, ContentEventArgs e)
@@ -123,7 +104,6 @@ namespace StaticWebEpiserverPlugin.Initialization
 
             // TODO: Sadly this is a syncronized event, look if we can thread this so we are not locking user interface until generation of pages are done
 
-            //GeneratePage(e.ContentLink, e.Content);
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
             var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
 
@@ -131,7 +111,7 @@ namespace StaticWebEpiserverPlugin.Initialization
 
             if (!movedToWasteBasket)
             {
-                GeneratePageInAllLanguages(staticWebService, contentRepository, configuration, page);
+                staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, page);
 
                 var descendents = moveContentEvent.Descendents.ToList();
                 foreach (ContentReference contentReference in descendents)
@@ -139,13 +119,13 @@ namespace StaticWebEpiserverPlugin.Initialization
                     PageData subPage;
                     if (contentRepository.TryGet<PageData>(contentReference, out subPage))
                     {
-                        GeneratePageInAllLanguages(staticWebService, contentRepository, configuration, subPage);
+                        staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, subPage);
                     }
                 }
 
                 var oldUrls = e.Items["StaticWeb-OldLanguageUrls"] as Dictionary<string, string>;
                 var newContentReference = new ContentReference(e.Content.ContentLink.ID);
-                var newUrls = GetPageLanguageUrls(staticWebService, contentRepository, newContentReference);
+                var newUrls = staticWebService.GetPageLanguageUrls(contentRepository, newContentReference);
                 if (oldUrls != null && newUrls != null && oldUrls.Count == newUrls.Count)
                 {
                     foreach (KeyValuePair<string, string> pair in oldUrls)
@@ -170,7 +150,8 @@ namespace StaticWebEpiserverPlugin.Initialization
                 return;
             }
 
-            GeneratePage(e.ContentLink, e.Content);
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+            staticWebService.GeneratePage(e.ContentLink, e.Content);
 
             var configuration = StaticWebConfiguration.CurrentSite;
             if (configuration == null || !configuration.Enabled)
@@ -189,106 +170,10 @@ namespace StaticWebEpiserverPlugin.Initialization
                     if (url != oldUrl)
                     {
                         // Page has changed url, remove old page(s) and generate new for children.
-                        var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-
                         var newUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
                         staticWebService.CreateRedirectPages(configuration, oldUrl, newUrl);
                     }
                 }
-            }
-        }
-
-        protected void RemovePageInAllLanguages(IStaticWebService staticWebService, IContentRepository contentRepository, SiteConfigurationElement configuration, ContentReference contentReference)
-        {
-            var page = contentRepository.Get<PageData>(contentReference);
-            var languages = page.ExistingLanguages;
-            foreach (var lang in languages)
-            {
-                var langPage = contentRepository.Get<PageData>(page.ContentLink, lang);
-
-                var langContentLink = langPage.ContentLink;
-
-                var removeSubFolders = true;
-                staticWebService.RemoveGeneratedPage(configuration, langContentLink, lang, removeSubFolders);
-            }
-        }
-
-
-        protected void GeneratePageInAllLanguages(IStaticWebService staticWebService, IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page)
-        {
-            // This page type should be ignored
-            if (page is IStaticWebIgnoreGenerate)
-            {
-                return;
-            }
-
-            var languages = page.ExistingLanguages;
-            foreach (var lang in languages)
-            {
-                var langPage = contentRepository.Get<PageData>(page.ContentLink.ToReferenceWithoutVersion(), lang);
-
-                var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
-
-                // This page type has a conditional for when we should generate it
-                if (langPage is IStaticWebIgnoreGenerateDynamically generateDynamically)
-                {
-                    if (!generateDynamically.ShouldGenerate())
-                    {
-                        if (generateDynamically.ShouldDeleteGenerated())
-                        {
-                            staticWebService.RemoveGeneratedPage(configuration, langContentLink, lang);
-                        }
-
-                        // This page should not be generated at this time, ignore it.
-                        continue;
-                    }
-                }
-
-                staticWebService.GeneratePage(configuration, langContentLink, lang);
-            }
-        }
-
-        private static void GeneratePage(ContentReference contentReference, IContent content)
-        {
-            // This page or block type should be ignored
-            if (content is IStaticWebIgnoreGenerate)
-            {
-                return;
-            }
-
-            var configuration = StaticWebConfiguration.CurrentSite;
-            if (configuration == null || !configuration.Enabled)
-            {
-                return;
-            }
-
-            if (content is PageData)
-            {
-                var page = content as PageData;
-                var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-
-                // This page type has a conditional for when we should generate it
-                if (content is IStaticWebIgnoreGenerateDynamically generateDynamically)
-                {
-                    if (!generateDynamically.ShouldGenerate())
-                    {
-                        if (generateDynamically.ShouldDeleteGenerated())
-                        {
-                            staticWebService.RemoveGeneratedPage(configuration, contentReference, page.Language);
-                        }
-
-                        // This page should not be generated at this time, ignore it.
-                        return;
-                    }
-                }
-
-                staticWebService.GeneratePage(configuration, contentReference, page.Language);
-            }
-            else if (content is BlockData)
-            {
-                var block = content as BlockData;
-                var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-                staticWebService.GeneratePagesDependingOnBlock(configuration, contentReference);
             }
         }
 

@@ -2,6 +2,7 @@
 using EPiServer.Core;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
+using EPiServer.Web.PropertyControls;
 using EPiServer.Web.Routing;
 using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Events;
@@ -364,6 +365,114 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
+        public Dictionary<string, string> GetPageLanguageUrls(IContentRepository contentRepository, ContentReference contentReference)
+        {
+            Dictionary<string, string> languageUrls = new Dictionary<string, string>();
+            PageData page;
+            if (contentRepository.TryGet<PageData>(contentReference, out page))
+            {
+                var languages = page.ExistingLanguages;
+                foreach (var lang in languages)
+                {
+                    var oldLangUrl = GetPageUrl(contentReference, lang);
+                    languageUrls.Add(lang.Name, oldLangUrl);
+                }
+            }
+            return languageUrls;
+        }
+
+        public void RemovePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, ContentReference contentReference)
+        {
+            var page = contentRepository.Get<PageData>(contentReference);
+            var languages = page.ExistingLanguages;
+            foreach (var lang in languages)
+            {
+                var langPage = contentRepository.Get<PageData>(page.ContentLink, lang);
+
+                var langContentLink = langPage.ContentLink;
+
+                var removeSubFolders = true;
+                RemoveGeneratedPage(configuration, langContentLink, lang, removeSubFolders);
+            }
+        }
+
+        public void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page)
+        {
+            // This page type should be ignored
+            if (page is IStaticWebIgnoreGenerate)
+            {
+                return;
+            }
+
+            var languages = page.ExistingLanguages;
+            foreach (var lang in languages)
+            {
+                var langPage = contentRepository.Get<PageData>(page.ContentLink.ToReferenceWithoutVersion(), lang);
+
+                var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
+
+                // This page type has a conditional for when we should generate it
+                if (langPage is IStaticWebIgnoreGenerateDynamically generateDynamically)
+                {
+                    if (!generateDynamically.ShouldGenerate())
+                    {
+                        if (generateDynamically.ShouldDeleteGenerated())
+                        {
+                            RemoveGeneratedPage(configuration, langContentLink, lang);
+                        }
+
+                        // This page should not be generated at this time, ignore it.
+                        continue;
+                    }
+                }
+
+                GeneratePage(configuration, langContentLink, lang);
+            }
+        }
+
+        public void GeneratePage(ContentReference contentReference, IContent content)
+        {
+            // This page or block type should be ignored
+            if (content is IStaticWebIgnoreGenerate)
+            {
+                return;
+            }
+
+            var configuration = StaticWebConfiguration.CurrentSite;
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            if (content is PageData)
+            {
+                var page = content as PageData;
+
+                // This page type has a conditional for when we should generate it
+                if (content is IStaticWebIgnoreGenerateDynamically generateDynamically)
+                {
+                    if (!generateDynamically.ShouldGenerate())
+                    {
+                        if (generateDynamically.ShouldDeleteGenerated())
+                        {
+                            RemoveGeneratedPage(configuration, contentReference, page.Language);
+                        }
+
+                        // This page should not be generated at this time, ignore it.
+                        return;
+                    }
+                }
+
+                GeneratePage(configuration, contentReference, page.Language);
+            }
+            else if (content is BlockData)
+            {
+                var block = content as BlockData;
+                GeneratePagesDependingOnBlock(configuration, contentReference);
+            }
+        }
+
+
         protected static string TryToFixLinkUrls(string html)
         {
             var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
@@ -636,7 +745,7 @@ namespace StaticWebEpiserverPlugin.Services
                 data = referencableClient.DownloadData(rootUrl + resourceUrl);
                 result.Data = data;
             }
-            catch (WebException ex)
+            catch (WebException)
             {
                 return null;
             }

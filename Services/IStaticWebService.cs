@@ -1,4 +1,5 @@
-﻿using EPiServer.Core;
+﻿using EPiServer;
+using EPiServer.Core;
 using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Events;
 using System;
@@ -64,11 +65,15 @@ namespace StaticWebEpiserverPlugin.Services
         event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
 
         void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
+        void GeneratePage(ContentReference contentReference, IContent content);
         void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink);
+        void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, bool removeSubFolders);
+        void RemovePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, ContentReference contentReference);
         string GetPageUrl(ContentReference contentLink, CultureInfo language = null);
         void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl);
+        Dictionary<string, string> GetPageLanguageUrls(IContentRepository contentRepository, ContentReference contentReference);
     }
 }

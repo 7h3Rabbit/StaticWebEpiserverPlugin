@@ -37,8 +37,9 @@ namespace StaticWebEpiserverPlugin.Routing
             {
                 tmpRoutes.IgnoreRoute(pageUrl);
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
+                // Ignore error
 
             }
             var route = tmpRoutes[0];
@@ -48,7 +49,7 @@ namespace StaticWebEpiserverPlugin.Routing
             {
                 Routes.Add(pageUrl, route);
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
                 // We are trying to add a route already existing, ignore this.
                 return;
@@ -59,8 +60,9 @@ namespace StaticWebEpiserverPlugin.Routing
                 // Add route to be global route table
                 RouteTable.Routes.Insert(0, route);
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
+                // Ignore error
             }
         }
         public static void Remove(string pageUrl)
