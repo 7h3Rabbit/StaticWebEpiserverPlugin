@@ -34,10 +34,24 @@ namespace StaticWebEpiserverPlugin.Initialization
             events.PublishingContent += OnPublishingContent;
             events.MovingContent += OnMovingContent;
             events.MovedContent += OnMovedContent;
+            events.DeletingContent += OnDeletingContent;
             events.DeletedContent += OnDeletedContent;
 
             var contentSecurityRepository = ServiceLocator.Current.GetInstance<IContentSecurityRepository>();
             contentSecurityRepository.ContentSecuritySaved += OnContentSecuritySaved;
+        }
+
+        private void OnDeletingContent(object sender, DeleteContentEventArgs e)
+        {
+            var isPage = e.Content is PageData;
+            if (isPage)
+            {
+                var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
+                var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+
+                var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
+                e.Items.Add("StaticWeb-OldUrl", oldUrl);
+            }
         }
 
         private void OnMovingContent(object sender, ContentEventArgs e)
@@ -58,10 +72,11 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnContentSecuritySaved(object sender, ContentSecurityEventArg e)
         {
+            //e.ContentSecurityDescriptor.HasAccess()
             //$"ContentSecuritySaved fired for content {e.ContentLink.ID}";
             //var affectedContent = new List<ContentReference>();
-            var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
-            var descendants = contentRepository.GetDescendents(e.ContentLink);
+            //var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
+            //var descendants = contentRepository.GetDescendents(e.ContentLink);
             //affectedContent.AddRange(descendants);
             //affectedContent.Add(e.ContentLink);
         }
@@ -81,12 +96,33 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnDeletedContent(object sender, DeleteContentEventArgs e)
         {
-            //var deleteContentEvent = e as DeleteContentEventArgs;
-            //var descendents = deleteContentEvent.DeletedDescendents.ToList();
-            //foreach (ContentReference contentReference in descendents)
-            //{
+            var isPage = e.Content is PageData;
+            var isBlock = e.Content is BlockData;
+            if (!isPage)
+            {
+                // Content is not of type PageData or BlockData, ignore
+                return;
+            }
 
-            //}
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+            staticWebService.GeneratePage(e.ContentLink, e.Content);
+
+            var configuration = StaticWebConfiguration.CurrentSite;
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            if (isPage)
+            {
+                // Handle renaming of pages
+                var oldUrl = e.Items["StaticWeb-OldUrl"] as string;
+                if (oldUrl != null)
+                {
+                    var removeSubFolders = true;
+                    staticWebService.RemoveGeneratedPage(configuration, oldUrl, removeSubFolders);
+                }
+            }
         }
 
         private void OnMovedContent(object sender, ContentEventArgs e)
@@ -111,6 +147,7 @@ namespace StaticWebEpiserverPlugin.Initialization
 
             if (!movedToWasteBasket)
             {
+                // Moved somewhere, generate pages again
                 staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, page);
 
                 var descendents = moveContentEvent.Descendents.ToList();
@@ -123,6 +160,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                     }
                 }
 
+                // create redirect pages in old location(s)
                 var oldUrls = e.Items["StaticWeb-OldLanguageUrls"] as Dictionary<string, string>;
                 var newContentReference = new ContentReference(e.Content.ContentLink.ID);
                 var newUrls = staticWebService.GetPageLanguageUrls(contentRepository, newContentReference);
@@ -135,6 +173,18 @@ namespace StaticWebEpiserverPlugin.Initialization
                             var newUrl = newUrls[pair.Key];
                             staticWebService.CreateRedirectPages(configuration, pair.Value, newUrl);
                         }
+                    }
+                }
+            }
+            else
+            {
+                // Remove page as it was added to WasteBasket
+                var oldUrls = e.Items["StaticWeb-OldLanguageUrls"] as Dictionary<string, string>;
+                if (oldUrls != null)
+                {
+                    foreach (KeyValuePair<string, string> pair in oldUrls)
+                    {
+                        staticWebService.RemoveGeneratedPage(configuration, pair.Value, true);
                     }
                 }
             }
