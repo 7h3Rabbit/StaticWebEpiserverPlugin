@@ -65,6 +65,10 @@ namespace StaticWebEpiserverPlugin.Services
 
         void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
         void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink);
+        void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language);
+        void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, bool removeSubFolders);
+        string GetPageUrl(ContentReference contentLink, CultureInfo language = null);
+        void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl);
     }
 }

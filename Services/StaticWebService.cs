@@ -37,13 +37,25 @@ namespace StaticWebEpiserverPlugin.Services
 
         public void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language)
         {
-            if (configuration == null || !configuration.Enabled)
+            bool removeSubFolders = false;
+            RemoveGeneratedPage(configuration, contentLink, language, removeSubFolders);
+        }
+
+        public void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, bool removeSubFolders)
+        {
+            string orginalUrl = GetPageUrl(contentLink, language);
+            if (orginalUrl == null)
             {
                 return;
             }
 
-            string orginalUrl = GetPageUrl(contentLink, language);
-            if (orginalUrl == null)
+            RemoveGeneratedPage(configuration, orginalUrl, removeSubFolders);
+        }
+
+
+        public void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false)
+        {
+            if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
@@ -63,6 +75,76 @@ namespace StaticWebEpiserverPlugin.Services
             }
 
             File.Delete(configuration.OutputPath + relativePath + "index.html");
+
+            var hasFiles = false;
+            var hasDirectories = false;
+            try
+            {
+                DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + relativePath);
+                hasFiles = directoryInfo.GetFiles().Length > 0;
+                hasDirectories = directoryInfo.GetDirectories().Length > 0;
+            }
+            catch (Exception)
+            {
+                // something was wrong, but this is just extra cleaning so ignore it
+                return;
+            }
+
+            // Directory is empty, remove empty directory
+            if (removeSubFolders || (!hasFiles && !hasDirectories))
+            {
+                Directory.Delete(configuration.OutputPath + relativePath, removeSubFolders);
+            }
+        }
+
+        public void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl)
+        {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            if (!Directory.Exists(configuration.OutputPath + oldUrl))
+            {
+                // Directory doesn't exist, nothing to remove :)
+                return;
+            }
+
+            if (!File.Exists(configuration.OutputPath + oldUrl + "index.html"))
+            {
+                // File doesn't exist, nothing to remove :)
+                return;
+            }
+
+            try
+            {
+                DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + oldUrl);
+                var fileInfos = directoryInfo.GetFiles("index.html", SearchOption.AllDirectories);
+
+                foreach (FileInfo info in fileInfos)
+                {
+                    var tempPath = info.FullName;
+                    // c:\websites\A\
+                    tempPath = "/" + tempPath.Replace(configuration.OutputPath, "").Replace("\\", "/");
+                    // /old/
+                    tempPath = tempPath.Replace(oldUrl, "");
+
+                    // index.html
+                    tempPath = tempPath.Replace("index.html", "");
+
+                    // /new/
+                    tempPath = newUrl + tempPath;
+
+                    // Create redirect html file
+                    var redirectHtml = $"<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0; URL='{tempPath}'\" /></head><body><a href=\"{tempPath}\">{tempPath}</a></body></html>";
+                    File.WriteAllText(info.FullName, redirectHtml);
+                }
+            }
+            catch (Exception)
+            {
+                // something was wrong, but this is just extra cleaning so ignore it
+                return;
+            }
         }
 
         public void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
@@ -212,10 +294,18 @@ namespace StaticWebEpiserverPlugin.Services
             return relativePath;
         }
 
-        protected static string GetPageUrl(ContentReference contentLink, CultureInfo language)
+        public string GetPageUrl(ContentReference contentLink, CultureInfo language = null)
         {
             var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
-            string orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
+            string orginalUrl = null;
+            if (language != null)
+            {
+                orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
+            }else
+            {
+                orginalUrl = urlResolver.GetUrl(contentLink);
+            }
+
             if (orginalUrl == null)
                 return null;
 
