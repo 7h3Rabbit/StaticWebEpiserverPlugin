@@ -103,10 +103,17 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 }
 
 
-                OnStatusChanged("Looking for obsolete pages");
-                RemoveObsoletePages(configuration);
-                OnStatusChanged("Looking for obsolete resources");
-                RemoveObsoleteResources(configuration);
+                if (configuration.RemoveObsoletePages)
+                {
+                    OnStatusChanged("Looking for obsolete pages");
+                    RemoveObsoletePages(configuration);
+                }
+
+                if (configuration.RemoveObsoleteResources)
+                {
+                    OnStatusChanged("Looking for obsolete resources");
+                    RemoveObsoleteResources(configuration);
+                }
 
                 resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_numberOfPages} pages generated.");
 

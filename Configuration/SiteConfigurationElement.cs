@@ -109,6 +109,30 @@ namespace StaticWebEpiserverPlugin.Configuration
             set { this["useResourceUrl"] = value; }
         }
 
+        [ConfigurationProperty("removeObsoleteResources", DefaultValue = true, IsRequired = false)]
+        public bool RemoveObsoleteResources
+        {
+            get
+            {
+                bool? config = (bool?)this["removeObsoleteResources"];
+                return config.HasValue ? config.Value : true;
+            }
+            set { this["removeObsoleteResources"] = value; }
+        }
+
+        [ConfigurationProperty("removeObsoletePages", DefaultValue = true, IsRequired = false)]
+        public bool RemoveObsoletePages
+        {
+            get
+            {
+                bool? config = (bool?)this["removeObsoletePages"];
+                return config.HasValue ? config.Value : true;
+            }
+            set { this["removeObsoletePages"] = value; }
+        }
+
+
+
         private bool ValidateResourceNaming()
         {
             if (!UseResourceUrl && !UseHash)
