@@ -164,6 +164,8 @@ With the `<sites>` configuration you can define multiple websites and also have 
                 `useRouting="true/false"`  (default: `false`)
                 `useHash="true/false"` (default: `true`)
                 `useResourceUrl="true/false"` (default: `false`)
+                `removeObsoleteResources="true/false"` (default: `false`)
+                `removeObsoletePages="true/false"` (default: `false`)
                 ` />`
 		
 Below you can see the different attributes that can be used for a site.
@@ -203,6 +205,13 @@ _( This value has to be true to support .axd resources and make them static)_
 Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
 _(If you also set `useHash` to true it will combine the two)_
 
+### `removeObsoletePages="true/false"` (default: `false`) ###
+Specifies if scheduled job should remove generated resources not being used by any generated pages anymore. 
+_(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
+
+### `RemoveObsoleteResources="true/false"` (default: `false`) ###
+Specifies if scheduled job should remove generated pages not represented in EpiServer anymore. 
+_(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
 
 ## AllowedResourceTypes Configuration ##
 With the `<allowedResourceTypes>` you can add, remove or change support for resource types.
