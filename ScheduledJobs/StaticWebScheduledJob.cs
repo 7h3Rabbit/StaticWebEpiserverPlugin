@@ -12,6 +12,7 @@ using StaticWebEpiserverPlugin.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -25,6 +26,8 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
         protected IContentRepository _contentRepository;
         protected UrlResolver _urlResolver;
         protected long _numberOfPages = 0;
+        protected long _numberOfObsoletePages = 0;
+        protected long _numberOfObsoleteResources = 0;
         protected Dictionary<int, string> _generatedPages;
         protected Dictionary<string, string> _generatedResources;
 
@@ -66,6 +69,9 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             foreach (var siteDefinition in siteDefinitions)
             {
                 _numberOfPages = 0;
+                _numberOfObsoletePages = 0;
+                _numberOfObsoleteResources = 0;
+
                 var configuration = StaticWebConfiguration.Get(siteDefinition);
                 if (configuration == null || !configuration.Enabled)
                 {
@@ -96,7 +102,24 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     StaticWebRouting.SaveRoutes();
                 }
 
-                resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_numberOfPages} pages generated.<br />");
+
+                OnStatusChanged("Looking for obsolete pages");
+                RemoveObsoletePages(configuration);
+                OnStatusChanged("Looking for obsolete resources");
+                RemoveObsoleteResources(configuration);
+
+                resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_numberOfPages} pages generated.");
+
+                if (_numberOfObsoletePages > 0)
+                {
+                    resultMessage.AppendLine($" {_numberOfObsoletePages} obsolete pages removed.");
+                }
+                if (_numberOfObsoleteResources > 0)
+                {
+                    resultMessage.AppendLine($" {_numberOfObsoleteResources} obsolete resources removed.");
+                }
+
+                resultMessage.AppendLine($"<br />");
             }
 
             if (!hasAnyMatchingConfiguration)
@@ -105,6 +128,117 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
 
             return resultMessage.ToString();
+        }
+
+        private void RemoveObsoleteResources(SiteConfigurationElement configuration)
+        {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            if (!Directory.Exists(configuration.OutputPath + configuration.ResourceFolder))
+            {
+                // Directory doesn't exist, nothing to remove :)
+                return;
+            }
+
+            var resources = _generatedResources.Values.ToHashSet<string>();
+
+            try
+            {
+                DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + configuration.ResourceFolder);
+                var fileInfos = directoryInfo.GetFiles("*", SearchOption.AllDirectories);
+
+                var nOfCandidates = fileInfos.Length;
+                var candidateIndex = 1;
+                foreach (FileInfo info in fileInfos)
+                {
+                    OnStatusChanged($"Looking for obsolete resources, candidate {candidateIndex} of {nOfCandidates}");
+
+                    var resourcePath = info.FullName;
+
+                    if (resourcePath.EndsWith("index.html"))
+                    {
+                        // Ignore index.html files (for example when having a empty resource folder name)
+                        continue;
+                    }
+
+                    resourcePath = "/" + resourcePath.Replace(configuration.OutputPath, "").Replace("\\", "/");
+
+                    if (!resources.Contains(resourcePath))
+                    {
+                        info.Delete();
+                        _numberOfObsoleteResources++;
+                    }
+                    candidateIndex++;
+                }
+            }
+            catch (Exception)
+            {
+                // something was wrong, but this is just extra cleaning so ignore it
+                return;
+            }
+        }
+
+        protected void RemoveObsoletePages(SiteConfigurationElement configuration)
+        {
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            if (!Directory.Exists(configuration.OutputPath))
+            {
+                // Directory doesn't exist, nothing to remove :)
+                return;
+            }
+
+            try
+            {
+                DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath);
+                var fileInfos = directoryInfo.GetFiles("index.html", SearchOption.AllDirectories);
+
+                var nOfCandidates = fileInfos.Length;
+                var candidateIndex = 1;
+                foreach (FileInfo info in fileInfos)
+                {
+                    OnStatusChanged($"Looking for obsolete pages, candidate {candidateIndex} of {nOfCandidates}");
+
+                    var url = info.FullName;
+                    // c:\websites\A\
+                    url = "/" + url.Replace(configuration.OutputPath, "").Replace("\\", "/");
+
+                    // index.html
+                    url = url.Replace("index.html", "");
+
+                    var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
+                    IContent contentData = urlResolver.Route(new UrlBuilder(url));
+
+                    // Does page exists?
+                    var pageExists = contentData != null;
+                    if (!pageExists)
+                    {
+                        // remove index.html file as it doesn't exist in EpiServer
+                        info.Delete();
+                        var dir = info.Directory;
+
+                        // remove folder if no more files in it
+                        if (dir.GetFiles().Length == 0 && dir.GetDirectories().Length == 0)
+                        {
+                            dir.Delete();
+                        }
+
+                        _numberOfObsoletePages++;
+                    }
+                    candidateIndex++;
+                }
+            }
+            catch (Exception)
+            {
+                // something was wrong, but this is just extra cleaning so ignore it
+                return;
+            }
         }
 
         protected void GeneratePageInAllLanguages(SiteConfigurationElement configuration, PageData page)
