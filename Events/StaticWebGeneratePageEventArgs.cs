@@ -13,6 +13,7 @@ namespace StaticWebEpiserverPlugin.Events
             this.CultureInfo = cultureInfo;
             this.PageUrl = pageUrl;
             this.CurrentResources = new Dictionary<string, string>();
+            this.Items = new Dictionary<string, object>();
         }
 
         public ContentReference ContentLink { get; set; }
