@@ -188,10 +188,23 @@ namespace StaticWebEpiserverPlugin.Services
                 StaticWebRouting.Remove(relativePath);
             }
 
+            string pageExtension = ".html";
             // someone wants to cancel this generation of this event.
             if (!generatePageEvent.CancelAction)
             {
-                html = GetPageContent(generatePageEvent);
+                var resourceInfo = DownloadResource(configuration.Url, orginalUrl, null, false);
+                if (resourceInfo != null)
+                {
+                    if (!string.IsNullOrEmpty(resourceInfo.Extension))
+                    {
+                        pageExtension = resourceInfo.Extension;
+                    }
+
+                    if (resourceInfo.Data != null)
+                    {
+                        html = Encoding.UTF8.GetString(resourceInfo.Data);
+                    }
+                }
             }
             generatePageEvent.Content = html;
 
@@ -230,7 +243,7 @@ namespace StaticWebEpiserverPlugin.Services
             // We don't care about a cancel action here
             AfterEnsurePageResources?.Invoke(this, generatePageEvent);
 
-            string filePath = configuration.OutputPath + relativePath + "index.html";
+            string filePath = configuration.OutputPath + relativePath + "index" + pageExtension;
             generatePageEvent.FilePath = filePath;
 
             // reset cancel action and reason
@@ -260,24 +273,6 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
 
             AfterGeneratePage?.Invoke(this, generatePageEvent);
-        }
-
-        protected static string GetPageContent(StaticWebGeneratePageEventArgs generatePageEvent)
-        {
-            WebClient webClient = new WebClient();
-            webClient.Headers.Set(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36 StaticWebPlugin/0.1");
-            webClient.Encoding = Encoding.UTF8;
-            try
-            {
-                string html = webClient.DownloadString(generatePageEvent.PageUrl);
-                return html;
-            }
-            catch (WebException)
-            {
-                // Ignore web exception, for example 404
-            }
-
-            return null;
         }
 
         protected static string GetPageRelativePath(string orginalUrl)
