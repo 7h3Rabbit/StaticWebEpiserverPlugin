@@ -259,11 +259,15 @@ namespace StaticWebEpiserverPlugin.Services
                     Directory.CreateDirectory(configuration.OutputPath + relativePath);
                 }
 
-                File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
-
-                if (configuration.UseRouting)
+                // only write and route content if it is not empty
+                if (!string.IsNullOrEmpty(generatePageEvent.Content))
                 {
-                    StaticWebRouting.Add(relativePath);
+                    File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
+
+                    if (configuration.UseRouting)
+                    {
+                        StaticWebRouting.Add(relativePath);
+                    }
                 }
             }
 
@@ -680,9 +684,25 @@ namespace StaticWebEpiserverPlugin.Services
                     // For approved file extensions that we don't need to do any changes on
                     string newResourceUrl = GetNewResourceUrl(resourcePath, resourceUrl, resourceInfo.Extension, resourceInfo.Data, useHash, useResourceUrl);
 
-                    var filepath = rootPath + newResourceUrl.Replace("/", "\\");
-                    WriteFile(filepath, resourceInfo.Data);
-                    return newResourceUrl;
+                    var hasContent = resourceInfo.Data != null && resourceInfo.Data.LongLength > 0;
+                    if (newResourceUrl != null && hasContent)
+                    {
+                        var filepath = rootPath + newResourceUrl.Replace("/", "\\");
+                        if (!useResourceUrl)
+                        {
+                            // We are using hash ONLY as file name so no need to replace file that already exists
+                            if (File.Exists(filepath))
+                                return newResourceUrl;
+                        }
+
+                        WriteFile(filepath, resourceInfo.Data);
+                        return newResourceUrl;
+                    }
+                    else
+                    {
+                        // Resource is not valid, return null
+                        return null;
+                    }
             }
         }
 
@@ -898,11 +918,26 @@ namespace StaticWebEpiserverPlugin.Services
 
             var data = Encoding.UTF8.GetBytes(content);
             string newCssResourceUrl = GetNewResourceUrl(resourcePath, url, ".css", data, useHash, useResourceUrl);
-            var filepath = rootPath + newCssResourceUrl.Replace("/", "\\");
 
-            WriteFile(filepath, content);
+            var hasContent = data != null && data.LongLength > 0;
+            if (newCssResourceUrl != null && hasContent)
+            {
+                var filepath = rootPath + newCssResourceUrl.Replace("/", "\\");
+                if (!useResourceUrl)
+                {
+                    // We are using hash ONLY as file name so no need to replace file that already exists
+                    if (File.Exists(filepath))
+                        return newCssResourceUrl;
+                }
 
-            return newCssResourceUrl;
+                WriteFile(filepath, data);
+                return newCssResourceUrl;
+            }
+            else
+            {
+                // Resource is not valid, return null
+                return null;
+            }
         }
 
         protected static string EnsureUrlWithoutParams(string url)
