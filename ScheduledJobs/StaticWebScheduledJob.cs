@@ -219,8 +219,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     // index.html
                     url = url.Replace("index.html", "");
 
-                    var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
-                    IContent contentData = urlResolver.Route(new UrlBuilder(url));
+                    IContent contentData = UrlResolver.Current.Route(new UrlBuilder(url));
 
                     // Does page exists?
                     var pageExists = contentData != null;
