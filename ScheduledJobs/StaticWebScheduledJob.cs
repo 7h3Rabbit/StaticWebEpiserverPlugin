@@ -249,20 +249,15 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
         protected void GeneratePageInAllLanguages(SiteConfigurationElement configuration, PageData page)
         {
-            // Only add pages once (have have this because of how websites can be setup to have a circle reference
+            // Only add pages once (have this because of how websites can be setup to have a circle reference
             if (page.ContentLink == null || _generatedPages.ContainsKey(page.ContentLink.ID))
             {
                 return;
             }
+            _generatedPages.Add(page.ContentLink.ID, null);
 
             // This page type should be ignored
-            if (page is IStaticWebIgnoreGenerate)
-            {
-                return;
-            }
-
-
-            _generatedPages.Add(page.ContentLink.ID, null);
+            var ignorePage = page is IStaticWebIgnoreGenerate;
 
             var languages = page.ExistingLanguages;
             foreach (var lang in languages)
@@ -284,12 +279,15 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                         }
 
                         // This page should not be generated at this time, ignore it.
-                        continue;
+                        ignorePage = true;
                     }
                 }
 
-                _staticWebService.GeneratePage(configuration, langContentLink, lang, _generatedResources);
-                _numberOfPages++;
+                if (!ignorePage)
+                {
+                    _staticWebService.GeneratePage(configuration, langContentLink, lang, _generatedResources);
+                    _numberOfPages++;
+                }
 
                 var children = _contentRepository.GetChildren<PageData>(langContentLink, lang);
                 foreach (PageData child in children)
