@@ -1,6 +1,7 @@
 ﻿using EPiServer.Core;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -18,7 +19,7 @@ namespace StaticWebEpiserverPlugin.Events
         public string PageUrl { get; set; }
         public string SimpleAddress { get; set; }
         public Dictionary<string, string> CurrentResources { get; set; }
-        public Dictionary<string, string> Resources { get; set; }
+        public ConcurrentDictionary<string, string> Resources { get; set; }
         public IEnumerable<string> FilePaths { get; set; }
         public string Content { get; set; }
         public bool CancelAction { get; set; }

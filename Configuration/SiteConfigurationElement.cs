@@ -131,7 +131,16 @@ namespace StaticWebEpiserverPlugin.Configuration
             set { this["removeObsoletePages"] = value; }
         }
 
+        [ConfigurationProperty("maxDegreeOfParallelismForScheduledJob", DefaultValue = 1, IsRequired = false)]
+        public int MaxDegreeOfParallelismForScheduledJob {
+            get
+            {
+                int? config = (int?)this["maxDegreeOfParallelismForScheduledJob"];
+                return config.HasValue ? config.Value : 1;
+            }
+            set { this["maxDegreeOfParallelismForScheduledJob"] = value; }
 
+        }
 
         private bool ValidateResourceNaming()
         {

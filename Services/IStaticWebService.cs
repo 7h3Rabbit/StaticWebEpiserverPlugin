@@ -3,6 +3,7 @@ using EPiServer.Core;
 using StaticWebEpiserverPlugin.Configuration;
 using StaticWebEpiserverPlugin.Events;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -65,8 +66,9 @@ namespace StaticWebEpiserverPlugin.Services
         event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
 
         void GeneratePage(ContentReference contentReference, IContent content);
-        void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, Dictionary<string, string> generatedResources = null);
-        void GeneratePage(SiteConfigurationElement configuration, string pageUrl, string simpleAddress = null, Dictionary<string, string> generatedResources = null);
+        void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, ConcurrentDictionary<string, string> generatedResources = null);
+        void GeneratePage(SiteConfigurationElement configuration, string pageUrl, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null);
+        void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress);
         void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink);
         void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false);
