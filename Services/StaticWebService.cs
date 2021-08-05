@@ -147,15 +147,32 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
         }
+        public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, Dictionary<string, string> generatedResources = null)
+        {
+            var simpleAddress = string.IsNullOrEmpty(page.ExternalURL) ? null : "/" + page.ExternalURL;
+            var pageUrl = GetPageUrl(page.ContentLink.ToReferenceWithoutVersion(), lang);
 
-        public void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+            GeneratePage(configuration, pageUrl, simpleAddress, generatedResources);
+        }
+
+        public void GeneratePage(SiteConfigurationElement configuration, string pageUrl, string simpleAddress = null, Dictionary<string, string> generatedResources = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
 
-            var generatePageEvent = new StaticWebGeneratePageEventArgs(contentLink, language, null);
+            //string orginalUrl = GetPageUrl(contentLink, language);
+            if (pageUrl == null)
+                return;
+
+            string relativePath = GetPageRelativePath(pageUrl);
+            string relativeSimplePath = GetPageRelativePath(simpleAddress);
+            var hasSimpleAddress = !string.IsNullOrEmpty(simpleAddress);
+            var fullPageUrl = configuration.Url + pageUrl;
+            var fullSimpeAddress = configuration.Url + simpleAddress;
+
+            var generatePageEvent = new StaticWebGeneratePageEventArgs(fullPageUrl, simpleAddress);
             if (generatedResources != null)
             {
                 generatePageEvent.Resources = generatedResources;
@@ -172,13 +189,6 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
 
-            string orginalUrl = GetPageUrl(contentLink, language);
-            if (orginalUrl == null)
-                return;
-
-            string relativePath = GetPageRelativePath(orginalUrl);
-            generatePageEvent.PageUrl = configuration.Url + orginalUrl;
-
             BeforeGetPageContent?.Invoke(this, generatePageEvent);
 
             string html = null;
@@ -186,13 +196,17 @@ namespace StaticWebEpiserverPlugin.Services
             if (configuration.UseRouting)
             {
                 StaticWebRouting.Remove(relativePath);
+                if (hasSimpleAddress)
+                {
+                    StaticWebRouting.Remove(relativeSimplePath);
+                }
             }
 
             string pageExtension = ".html";
             // someone wants to cancel this generation of this event.
             if (!generatePageEvent.CancelAction)
             {
-                var resourceInfo = DownloadResource(configuration.Url, orginalUrl, null, false);
+                var resourceInfo = DownloadResource(configuration.Url, pageUrl, null, false);
                 if (resourceInfo != null)
                 {
                     if (!string.IsNullOrEmpty(resourceInfo.Extension))
@@ -244,7 +258,16 @@ namespace StaticWebEpiserverPlugin.Services
             AfterEnsurePageResources?.Invoke(this, generatePageEvent);
 
             string filePath = configuration.OutputPath + relativePath + "index" + pageExtension;
-            generatePageEvent.FilePath = filePath;
+            var filePaths = new List<string>
+            {
+                filePath
+            };
+            if (hasSimpleAddress)
+            {
+                string filePath2 = configuration.OutputPath + relativeSimplePath + "index" + pageExtension;
+                filePaths.Add(filePath2);
+            }
+            generatePageEvent.FilePaths = filePaths;
 
             // reset cancel action and reason
             generatePageEvent.CancelAction = false;
@@ -254,19 +277,27 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel this page write.
             if (!generatePageEvent.CancelAction)
             {
-                if (!Directory.Exists(configuration.OutputPath + relativePath))
-                {
-                    Directory.CreateDirectory(configuration.OutputPath + relativePath);
-                }
-
                 // only write and route content if it is not empty
                 if (!string.IsNullOrEmpty(generatePageEvent.Content))
                 {
-                    File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
-
-                    if (configuration.UseRouting)
+                    foreach (string outputFilePath in generatePageEvent.FilePaths)
                     {
-                        StaticWebRouting.Add(relativePath);
+                        var directory = Path.GetDirectoryName(outputFilePath);
+                        if (!Directory.Exists(directory))
+                        {
+                            Directory.CreateDirectory(directory);
+                        }
+
+                        File.WriteAllText(outputFilePath, generatePageEvent.Content);
+
+                        if (configuration.UseRouting)
+                        {
+                            StaticWebRouting.Add(relativePath);
+                            if (hasSimpleAddress)
+                            {
+                                StaticWebRouting.Add(relativeSimplePath);
+                            }
+                        }
                     }
                 }
             }
@@ -279,8 +310,14 @@ namespace StaticWebEpiserverPlugin.Services
             AfterGeneratePage?.Invoke(this, generatePageEvent);
         }
 
+
         protected static string GetPageRelativePath(string orginalUrl)
         {
+            if (string.IsNullOrEmpty(orginalUrl))
+            {
+                return null;
+            }
+
             var relativePath = orginalUrl.Replace("/", @"\");
             if (!relativePath.StartsWith(@"\"))
             {
@@ -301,7 +338,8 @@ namespace StaticWebEpiserverPlugin.Services
             if (language != null)
             {
                 orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
-            }else
+            }
+            else
             {
                 orginalUrl = urlResolver.GetUrl(contentLink);
             }
@@ -359,7 +397,7 @@ namespace StaticWebEpiserverPlugin.Services
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
                 {
-                    GeneratePage(configuration, page.ContentLink, lang);
+                    GeneratePage(configuration, page, lang);
                 }
             }
         }
@@ -425,7 +463,7 @@ namespace StaticWebEpiserverPlugin.Services
                     }
                 }
 
-                GeneratePage(configuration, langContentLink, lang);
+                GeneratePage(configuration, langPage, lang);
             }
         }
 
@@ -462,7 +500,7 @@ namespace StaticWebEpiserverPlugin.Services
                     }
                 }
 
-                GeneratePage(configuration, contentReference, page.Language);
+                GeneratePage(configuration, page, page.Language);
             }
             else if (content is BlockData)
             {

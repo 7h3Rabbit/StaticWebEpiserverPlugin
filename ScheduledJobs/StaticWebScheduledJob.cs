@@ -285,7 +285,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 if (!ignorePage)
                 {
-                    _staticWebService.GeneratePage(configuration, langContentLink, lang, _generatedResources);
+                    _staticWebService.GeneratePage(configuration, langPage, lang, _generatedResources);
                     _numberOfPages++;
                 }
 

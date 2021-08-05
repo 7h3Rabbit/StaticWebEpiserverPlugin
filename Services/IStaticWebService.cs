@@ -64,8 +64,9 @@ namespace StaticWebEpiserverPlugin.Services
         /// </summary>
         event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
 
-        void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null);
         void GeneratePage(ContentReference contentReference, IContent content);
+        void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, Dictionary<string, string> generatedResources = null);
+        void GeneratePage(SiteConfigurationElement configuration, string pageUrl, string simpleAddress = null, Dictionary<string, string> generatedResources = null);
         void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink);
         void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false);
