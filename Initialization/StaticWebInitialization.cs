@@ -215,7 +215,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                 if (oldUrl != null)
                 {
                     var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
-                    var url = urlResolver.GetUrl(e.ContentLink);
+                    var url = staticWebService.GetPageUrl(e.ContentLink);
                     if (url != oldUrl)
                     {
                         // Page has changed url, remove old page(s) and generate new for children.
