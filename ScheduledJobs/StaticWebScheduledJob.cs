@@ -10,11 +10,13 @@ using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Routing;
 using StaticWebEpiserverPlugin.Services;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace StaticWebEpiserverPlugin.ScheduledJobs
 {
@@ -29,7 +31,8 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
         protected long _numberOfObsoletePages = 0;
         protected long _numberOfObsoleteResources = 0;
         protected Dictionary<int, string> _generatedPages;
-        protected Dictionary<string, string> _generatedResources;
+        protected ConcurrentDictionary<string, string> _generatedResources;
+        protected Dictionary<string, List<string>> _sitePages;
 
         public StaticWebScheduledJob()
         {
@@ -59,7 +62,8 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
             // Setting number of pages to start value (0), it is used to show message after job is done
             _generatedPages = new Dictionary<int, string>();
-            _generatedResources = new Dictionary<string, string>();
+            _generatedResources = new ConcurrentDictionary<string, string>();
+            _sitePages = new Dictionary<string, List<string>>();
             StringBuilder resultMessage = new StringBuilder();
 
             var siteDefinitionRepository = ServiceLocator.Current.GetInstance<ISiteDefinitionRepository>();
@@ -90,11 +94,31 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 // This website has been setup for using StaticWebEpiServerPlugin
                 SiteDefinition.Current = siteDefinition;
 
+                // Add Empty placeholder for pages to come
+                _sitePages.Add(configuration.Name, new List<string>());
+
                 //Add implementation
                 var startPage = SiteDefinition.Current.StartPage.ToReferenceWithoutVersion();
 
                 var page = _contentRepository.Get<PageData>(startPage);
-                GeneratePageInAllLanguages(configuration, page);
+                AddAllPagesInAllLanguagesForConfiguration(configuration, page);
+
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelismForScheduledJob
+                };
+
+                // Runt first page first to get most of the common resources
+                var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
+                _staticWebService.GeneratePage(configuration, firstPageUrl, null, _generatedResources);
+
+                // We now probably have most common
+                var pages = _sitePages[configuration.Name].Skip(1).ToList();
+                Parallel.ForEach(pages, parallelOptions, (pageUrl) =>
+                 {
+                     // TODO: Change this to handle SimpleAddress...
+                     _staticWebService.GeneratePage(configuration, pageUrl, null, _generatedResources);
+                 });
 
                 if (configuration.UseRouting)
                 {
@@ -115,7 +139,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     RemoveObsoleteResources(configuration);
                 }
 
-                resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_numberOfPages} pages generated.");
+                resultMessage.AppendLine($"<b>{configuration.Name}</b> - {_sitePages[configuration.Name].Count} pages generated.");
 
                 if (_numberOfObsoletePages > 0)
                 {
@@ -247,7 +271,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
         }
 
-        protected void GeneratePageInAllLanguages(SiteConfigurationElement configuration, PageData page)
+        protected void AddAllPagesInAllLanguagesForConfiguration(SiteConfigurationElement configuration, PageData page)
         {
             // Only add pages once (have this because of how websites can be setup to have a circle reference
             if (page.ContentLink == null || _generatedPages.ContainsKey(page.ContentLink.ID))
@@ -263,8 +287,6 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             foreach (var lang in languages)
             {
                 var langPage = _contentRepository.Get<PageData>(page.ContentLink.ToReferenceWithoutVersion(), lang);
-
-                UpdateScheduledJobStatus(configuration, page, lang);
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
 
@@ -285,14 +307,27 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 if (!ignorePage)
                 {
-                    _staticWebService.GeneratePage(configuration, langContentLink, lang, _generatedResources);
+                    string pageUrl, simpleAddress;
+                    _staticWebService.GetUrlsForPage(page, lang, out pageUrl, out simpleAddress);
+
+                    if (!string.IsNullOrEmpty(pageUrl))
+                    {
+                        UpdateScheduledJobStatus(configuration, pageUrl);
+                        _sitePages[configuration.Name].Add(pageUrl);
+                    }
+                    if (!string.IsNullOrEmpty(simpleAddress))
+                    {
+                        _sitePages[configuration.Name].Add(simpleAddress);
+                    }
+
+                    //_staticWebService.GeneratePage(configuration, langPage, lang, _generatedResources);
                     _numberOfPages++;
                 }
 
                 var children = _contentRepository.GetChildren<PageData>(langContentLink, lang);
                 foreach (PageData child in children)
                 {
-                    GeneratePageInAllLanguages(configuration, child);
+                    AddAllPagesInAllLanguagesForConfiguration(configuration, child);
 
                     //For long running jobs periodically check if stop is signaled and if so stop execution
                     if (_stopSignaled)
@@ -311,24 +346,20 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
         }
 
-        protected void UpdateScheduledJobStatus(SiteConfigurationElement configuration, PageData page, CultureInfo lang)
+        protected void UpdateScheduledJobStatus(SiteConfigurationElement configuration, string pageUrl)
         {
-            var orginalUrl = _urlResolver.GetUrl(page.ContentLink.ToReferenceWithoutVersion(), lang.Name);
-            if (orginalUrl == null)
-                return;
-
-            if (orginalUrl.StartsWith("//"))
+            if (pageUrl.StartsWith("//"))
             {
                 return;
             }
 
             // NOTE: If publishing event comes from scheduled publishing (orginalUrl includes protocol, domain and port number)
-            if (!orginalUrl.StartsWith("/"))
+            if (!pageUrl.StartsWith("/"))
             {
-                orginalUrl = new Uri(orginalUrl).AbsolutePath;
+                pageUrl = new Uri(pageUrl).AbsolutePath;
             }
 
-            OnStatusChanged($"{configuration.Name} - {_numberOfPages} pages generated. currently on: {orginalUrl}");
+            OnStatusChanged($"{configuration.Name} - {_numberOfPages} pages found. currently on: {pageUrl}");
         }
     }
 }

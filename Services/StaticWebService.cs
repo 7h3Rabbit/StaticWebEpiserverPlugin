@@ -10,6 +10,7 @@ using StaticWebEpiserverPlugin.Interfaces;
 using StaticWebEpiserverPlugin.Models;
 using StaticWebEpiserverPlugin.Routing;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -147,22 +148,44 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
         }
+        public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, ConcurrentDictionary<string, string> generatedResources = null)
+        {
+            string pageUrl, simpleAddress;
+            GetUrlsForPage(page, lang, out pageUrl, out simpleAddress);
+            GeneratePage(configuration, pageUrl, simpleAddress, generatedResources);
+        }
 
-        public void GeneratePage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, Dictionary<string, string> generatedResources = null)
+        public void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress)
+        {
+            simpleAddress = string.IsNullOrEmpty(page.ExternalURL) ? null : "/" + page.ExternalURL;
+            pageUrl = GetPageUrl(page.ContentLink.ToReferenceWithoutVersion(), lang);
+        }
+
+        public void GeneratePage(SiteConfigurationElement configuration, string pageUrl, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
 
-            var generatePageEvent = new StaticWebGeneratePageEventArgs(contentLink, language, null);
+            //string orginalUrl = GetPageUrl(contentLink, language);
+            if (pageUrl == null)
+                return;
+
+            string relativePath = GetPageRelativePath(pageUrl);
+            string relativeSimplePath = GetPageRelativePath(simpleAddress);
+            var hasSimpleAddress = !string.IsNullOrEmpty(simpleAddress);
+            var fullPageUrl = configuration.Url + pageUrl;
+            var fullSimpeAddress = configuration.Url + simpleAddress;
+
+            var generatePageEvent = new StaticWebGeneratePageEventArgs(fullPageUrl, simpleAddress);
             if (generatedResources != null)
             {
                 generatePageEvent.Resources = generatedResources;
             }
             else
             {
-                generatePageEvent.Resources = new Dictionary<string, string>();
+                generatePageEvent.Resources = new ConcurrentDictionary<string, string>();
             }
 
             BeforeGeneratePage?.Invoke(this, generatePageEvent);
@@ -172,13 +195,6 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
 
-            string orginalUrl = GetPageUrl(contentLink, language);
-            if (orginalUrl == null)
-                return;
-
-            string relativePath = GetPageRelativePath(orginalUrl);
-            generatePageEvent.PageUrl = configuration.Url + orginalUrl;
-
             BeforeGetPageContent?.Invoke(this, generatePageEvent);
 
             string html = null;
@@ -186,13 +202,17 @@ namespace StaticWebEpiserverPlugin.Services
             if (configuration.UseRouting)
             {
                 StaticWebRouting.Remove(relativePath);
+                if (hasSimpleAddress)
+                {
+                    StaticWebRouting.Remove(relativeSimplePath);
+                }
             }
 
             string pageExtension = ".html";
             // someone wants to cancel this generation of this event.
             if (!generatePageEvent.CancelAction)
             {
-                var resourceInfo = DownloadResource(configuration.Url, orginalUrl, null, false);
+                var resourceInfo = DownloadResource(configuration.Url, pageUrl, null, false);
                 if (resourceInfo != null)
                 {
                     if (!string.IsNullOrEmpty(resourceInfo.Extension))
@@ -244,7 +264,16 @@ namespace StaticWebEpiserverPlugin.Services
             AfterEnsurePageResources?.Invoke(this, generatePageEvent);
 
             string filePath = configuration.OutputPath + relativePath + "index" + pageExtension;
-            generatePageEvent.FilePath = filePath;
+            var filePaths = new List<string>
+            {
+                filePath
+            };
+            if (hasSimpleAddress)
+            {
+                string filePath2 = configuration.OutputPath + relativeSimplePath + "index" + pageExtension;
+                filePaths.Add(filePath2);
+            }
+            generatePageEvent.FilePaths = filePaths;
 
             // reset cancel action and reason
             generatePageEvent.CancelAction = false;
@@ -254,19 +283,27 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel this page write.
             if (!generatePageEvent.CancelAction)
             {
-                if (!Directory.Exists(configuration.OutputPath + relativePath))
-                {
-                    Directory.CreateDirectory(configuration.OutputPath + relativePath);
-                }
-
                 // only write and route content if it is not empty
                 if (!string.IsNullOrEmpty(generatePageEvent.Content))
                 {
-                    File.WriteAllText(generatePageEvent.FilePath, generatePageEvent.Content);
-
-                    if (configuration.UseRouting)
+                    foreach (string outputFilePath in generatePageEvent.FilePaths)
                     {
-                        StaticWebRouting.Add(relativePath);
+                        var directory = Path.GetDirectoryName(outputFilePath);
+                        if (!Directory.Exists(directory))
+                        {
+                            Directory.CreateDirectory(directory);
+                        }
+
+                        File.WriteAllText(outputFilePath, generatePageEvent.Content);
+
+                        if (configuration.UseRouting)
+                        {
+                            StaticWebRouting.Add(relativePath);
+                            if (hasSimpleAddress)
+                            {
+                                StaticWebRouting.Add(relativeSimplePath);
+                            }
+                        }
                     }
                 }
             }
@@ -279,8 +316,14 @@ namespace StaticWebEpiserverPlugin.Services
             AfterGeneratePage?.Invoke(this, generatePageEvent);
         }
 
+
         protected static string GetPageRelativePath(string orginalUrl)
         {
+            if (string.IsNullOrEmpty(orginalUrl))
+            {
+                return null;
+            }
+
             var relativePath = orginalUrl.Replace("/", @"\");
             if (!relativePath.StartsWith(@"\"))
             {
@@ -301,7 +344,8 @@ namespace StaticWebEpiserverPlugin.Services
             if (language != null)
             {
                 orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
-            }else
+            }
+            else
             {
                 orginalUrl = urlResolver.GetUrl(contentLink);
             }
@@ -359,7 +403,7 @@ namespace StaticWebEpiserverPlugin.Services
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
                 {
-                    GeneratePage(configuration, page.ContentLink, lang);
+                    GeneratePage(configuration, page, lang);
                 }
             }
         }
@@ -425,7 +469,7 @@ namespace StaticWebEpiserverPlugin.Services
                     }
                 }
 
-                GeneratePage(configuration, langContentLink, lang);
+                GeneratePage(configuration, langPage, lang);
             }
         }
 
@@ -462,7 +506,7 @@ namespace StaticWebEpiserverPlugin.Services
                     }
                 }
 
-                GeneratePage(configuration, contentReference, page.Language);
+                GeneratePage(configuration, page, page.Language);
             }
             else if (content is BlockData)
             {
@@ -502,7 +546,7 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected static string EnsurePageResources(SiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, Dictionary<string, string> replaceResourcePairs = null)
+        protected static string EnsurePageResources(SiteConfigurationElement configuration, string html, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -516,7 +560,7 @@ namespace StaticWebEpiserverPlugin.Services
 
             if (replaceResourcePairs == null)
             {
-                replaceResourcePairs = new Dictionary<string, string>();
+                replaceResourcePairs = new ConcurrentDictionary<string, string>();
             }
 
             // make sure we have all resources from script, link and img tags for current page
@@ -547,7 +591,7 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected static void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
+        protected static void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -590,7 +634,7 @@ namespace StaticWebEpiserverPlugin.Services
                         var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, configuration.UseHash, configuration.UseResourceUrl);
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
-                            replaceResourcePairs.Add(resourceUrl, newResourceUrl);
+                            replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
                         }
                         if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                         {
@@ -601,7 +645,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref Dictionary<string, string> replaceResourcePairs)
+        protected static void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -633,7 +677,7 @@ namespace StaticWebEpiserverPlugin.Services
                     var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, configuration.UseHash, configuration.UseResourceUrl);
                     if (!replaceResourcePairs.ContainsKey(resourceUrl))
                     {
-                        replaceResourcePairs.Add(resourceUrl, newResourceUrl);
+                        replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
                     }
                     if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                     {
@@ -643,7 +687,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             bool preventDownload = IsDownloadPrevented(resourceUrl, useHash);
             if (preventDownload)
@@ -863,7 +907,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, Dictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
+        protected static string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool useHash = true, bool useResourceUrl = false)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -894,7 +938,7 @@ namespace StaticWebEpiserverPlugin.Services
                         content = content.Replace(orginalUrl, newResourceUrl);
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
-                            replaceResourcePairs.Add(resourceUrl, newResourceUrl);
+                            replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
                         }
                         if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                         {
@@ -906,7 +950,7 @@ namespace StaticWebEpiserverPlugin.Services
                         content = content.Replace(orginalUrl, "/" + resourcePath.Replace(@"\", "/") + resourceUrl);
                         if (!replaceResourcePairs.ContainsKey(resourceUrl))
                         {
-                            replaceResourcePairs.Add(resourceUrl, null);
+                            replaceResourcePairs.TryAdd(resourceUrl, null);
                         }
                         if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                         {
