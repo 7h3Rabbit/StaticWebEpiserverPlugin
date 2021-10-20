@@ -232,6 +232,8 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 var nOfCandidates = fileInfos.Length;
                 var candidateIndex = 1;
+
+                var siteUrl = configuration.Url.TrimEnd('/');
                 foreach (FileInfo info in fileInfos)
                 {
                     OnStatusChanged($"Looking for obsolete pages, candidate {candidateIndex} of {nOfCandidates}");
@@ -243,7 +245,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     // index.html
                     url = url.Replace("index.html", "");
 
-                    IContent contentData = UrlResolver.Current.Route(new UrlBuilder(url));
+                    IContent contentData = UrlResolver.Current.Route(new UrlBuilder(siteUrl + url));
 
                     // Does page exists?
                     var pageExists = contentData != null;
