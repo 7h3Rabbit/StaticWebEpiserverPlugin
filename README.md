@@ -213,6 +213,12 @@ _(Please note that enabling this can be dangerous as other files might be delete
 Specifies if scheduled job should remove generated pages not represented in EpiServer anymore. 
 _(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
 
+### `useTemporaryAttribute="true/false"` (default: `null`) ###
+Specifies that pages and resources writen because of publish event should have `Temporary` file attribute set.
+If this is set to `false` it will set `Normal` file attribute. If this is not set (read: default) it will not set any file attributes when writen to disk.
+This attribute may be used for identify high priority changes when you have a custom application to transfer files to multiple servers.
+(It is better to use rsync or similar instead of this if possible).
+
 ## AllowedResourceTypes Configuration ##
 With the `<allowedResourceTypes>` you can add, remove or change support for resource types.
 This is usefull if you for example want to extend support for more file extensions.
