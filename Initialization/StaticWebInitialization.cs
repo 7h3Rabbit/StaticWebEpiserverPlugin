@@ -103,14 +103,15 @@ namespace StaticWebEpiserverPlugin.Initialization
                 return;
             }
 
-            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            staticWebService.GeneratePage(e.ContentLink, e.Content);
-
             var configuration = StaticWebConfiguration.CurrentSite;
             if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
+
+            bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute);
 
             if (isPage)
             {
@@ -199,14 +200,15 @@ namespace StaticWebEpiserverPlugin.Initialization
                 return;
             }
 
-            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            staticWebService.GeneratePage(e.ContentLink, e.Content);
-
             var configuration = StaticWebConfiguration.CurrentSite;
             if (configuration == null || !configuration.Enabled)
             {
                 return;
             }
+
+            bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute);
 
             if (isPage)
             {

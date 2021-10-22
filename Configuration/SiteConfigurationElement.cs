@@ -142,6 +142,18 @@ namespace StaticWebEpiserverPlugin.Configuration
 
         }
 
+        [ConfigurationProperty("useTemporaryAttribute", DefaultValue = null, IsRequired = false)]
+        public bool? UseTemporaryAttribute
+        {
+            get
+            {
+                bool? config = (bool?)this["useTemporaryAttribute"];
+                return config;
+            }
+            set { this["useTemporaryAttribute"] = value; }
+
+        }
+
         private bool ValidateResourceNaming()
         {
             if (!UseResourceUrl && !UseHash)

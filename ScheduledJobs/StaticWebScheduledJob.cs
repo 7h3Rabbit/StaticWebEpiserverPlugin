@@ -12,7 +12,6 @@ using StaticWebEpiserverPlugin.Services;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -108,16 +107,18 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelismForScheduledJob
                 };
 
+                bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
+
                 // Runt first page first to get most of the common resources
                 var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
-                _staticWebService.GeneratePage(configuration, firstPageUrl, null, _generatedResources);
+                _staticWebService.GeneratePage(configuration, firstPageUrl, useTemporaryAttribute, null, _generatedResources);
 
                 // We now probably have most common
                 var pages = _sitePages[configuration.Name].Skip(1).ToList();
                 Parallel.ForEach(pages, parallelOptions, (pageUrl) =>
                  {
                      // TODO: Change this to handle SimpleAddress...
-                     _staticWebService.GeneratePage(configuration, pageUrl, null, _generatedResources);
+                     _staticWebService.GeneratePage(configuration, pageUrl, useTemporaryAttribute, null, _generatedResources);
                  });
 
                 if (configuration.UseRouting)
