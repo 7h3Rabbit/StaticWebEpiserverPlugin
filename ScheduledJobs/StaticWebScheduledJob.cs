@@ -59,9 +59,6 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             //Call OnStatusChanged to periodically notify progress of job for manually started jobs
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
-            // Setting number of pages to start value (0), it is used to show message after job is done
-            _generatedPages = new Dictionary<int, string>();
-            _generatedResources = new ConcurrentDictionary<string, string>();
             _sitePages = new Dictionary<string, List<string>>();
             StringBuilder resultMessage = new StringBuilder();
 
@@ -71,6 +68,9 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             var numberOfSiteDefinitions = siteDefinitions.Count;
             foreach (var siteDefinition in siteDefinitions)
             {
+                _generatedPages = new Dictionary<int, string>();
+                _generatedResources = new ConcurrentDictionary<string, string>();
+
                 _numberOfPages = 0;
                 _numberOfObsoletePages = 0;
                 _numberOfObsoleteResources = 0;
