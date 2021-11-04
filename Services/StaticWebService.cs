@@ -1040,23 +1040,26 @@ namespace StaticWebEpiserverPlugin.Services
                 using (FileStream fs = File.Open(filepath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
                 {
                     fs.Write(data, 0, data.Length);
+                    fs.SetLength(data.Length);
                 }
             }
             else if (useTemporaryAttribute.Value)
             {
                 using (FileStream fs = File.Open(filepath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
                 {
+                    File.SetAttributes(filepath, FileAttributes.Normal);
                     fs.Write(data, 0, data.Length);
+                    fs.SetLength(data.Length);
                 }
-                File.SetAttributes(filepath, FileAttributes.Normal);
             }
             else
             {
                 using (FileStream fs = File.Open(filepath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
                 {
+                    File.SetAttributes(filepath, FileAttributes.Temporary);
                     fs.Write(data, 0, data.Length);
+                    fs.SetLength(data.Length);
                 }
-                File.SetAttributes(filepath, FileAttributes.Temporary);
             }
         }
 
