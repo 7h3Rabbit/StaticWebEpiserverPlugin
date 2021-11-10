@@ -210,6 +210,8 @@ namespace StaticWebEpiserverPlugin.Initialization
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
             staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute);
 
+            staticWebService.GeneratePagesDependingOnContent(e.ContentLink, useTemporaryAttribute);
+
             if (isPage)
             {
                 // Handle renaming of pages

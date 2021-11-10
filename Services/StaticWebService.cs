@@ -1,5 +1,6 @@
 ﻿using EPiServer;
 using EPiServer.Core;
+using EPiServer.DataAbstraction.Internal;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
@@ -515,6 +516,27 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
+        public void GeneratePagesDependingOnContent(ContentReference contentReference, bool? useTemporaryAttribute)
+        {
+            var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
+            var references = contentRepository.GetReferencesToContent(contentReference, false).GroupBy(x => x.OwnerID + "-" + x.OwnerLanguage);
+
+            foreach (var group in references)
+            {
+                var item = group.FirstOrDefault();
+                if (item == null)
+                    continue;
+
+                if (item.ReferenceType != (int)EPiServer.DataAbstraction.ReferenceType.PageLinkReference)
+                    continue;
+
+                if (item.OwnerID == null)
+                    continue;
+
+                var referencedContent = contentRepository.Get<PageData>(item.OwnerID.ToReferenceWithoutVersion(), item.OwnerLanguage);
+                GeneratePage(item.OwnerID, referencedContent, useTemporaryAttribute);
+            }
+        }
 
         protected static string TryToFixLinkUrls(string html)
         {
@@ -771,7 +793,7 @@ namespace StaticWebEpiserverPlugin.Services
             switch (extension)
             {
                 case ".axd": // Assembly Web Resouces (Will validate against content-type)
-                    // We only allow .axd when using hash (else we will overwrite same file with different content)
+                             // We only allow .axd when using hash (else we will overwrite same file with different content)
                     return !useHash;
                 case "":
                     // missing extension, download and look at contenttype
