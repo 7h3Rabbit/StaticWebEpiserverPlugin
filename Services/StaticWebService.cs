@@ -516,7 +516,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        public void GeneratePagesDependingOnContent(ContentReference contentReference, bool? useTemporaryAttribute)
+        public void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute)
         {
             var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
             var references = contentRepository.GetReferencesToContent(contentReference, false).GroupBy(x => x.OwnerID + "-" + x.OwnerLanguage);
@@ -533,8 +533,15 @@ namespace StaticWebEpiserverPlugin.Services
                 if (item.OwnerID == null)
                     continue;
 
-                var referencedContent = contentRepository.Get<PageData>(item.OwnerID.ToReferenceWithoutVersion(), item.OwnerLanguage);
-                GeneratePage(item.OwnerID, referencedContent, useTemporaryAttribute);
+                var referencedContent = contentRepository.Get<IContent>(item.OwnerID.ToReferenceWithoutVersion(), item.OwnerLanguage);
+                if (referencedContent is PageData)
+                {
+                    GeneratePage(item.OwnerID, referencedContent, useTemporaryAttribute);
+                }
+                else if (referencedContent is BlockData)
+                {
+                    GeneratePagesDependingOnBlock(configuration, item.OwnerID, useTemporaryAttribute);
+                }
             }
         }
 
