@@ -1,6 +1,5 @@
 ﻿using EPiServer;
 using EPiServer.Core;
-using EPiServer.DataAbstraction.Internal;
 using EPiServer.Filters;
 using EPiServer.ServiceLocation;
 using EPiServer.Web.Routing;
@@ -32,6 +31,9 @@ namespace StaticWebEpiserverPlugin.Services
         public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGeneratePageWrite;
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePage;
+
+        public event EventHandler<StaticWebIOEvent> AfterIOWrite;
+        public event EventHandler<StaticWebIOEvent> AfterIODelete;
 
         public StaticWebService()
         {
@@ -77,6 +79,8 @@ namespace StaticWebEpiserverPlugin.Services
             }
 
             File.Delete(configuration.OutputPath + relativePath + "index.html");
+
+            AfterIODelete?.Invoke(this, new StaticWebIOEvent { FilePath = relativePath + "index.html" });
 
             var hasFiles = false;
             var hasDirectories = false;
@@ -140,6 +144,8 @@ namespace StaticWebEpiserverPlugin.Services
                     // Create redirect html file
                     var redirectHtml = $"<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0; URL='{tempPath}'\" /></head><body><a href=\"{tempPath}\">{tempPath}</a></body></html>";
                     File.WriteAllText(info.FullName, redirectHtml);
+
+                    AfterIOWrite?.Invoke(this, new StaticWebIOEvent { FilePath = info.FullName, Data = Encoding.UTF8.GetBytes(redirectHtml) });
                 }
             }
             catch (Exception)
@@ -575,7 +581,7 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected static string EnsurePageResources(SiteConfigurationElement configuration, string html, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
+        protected string EnsurePageResources(SiteConfigurationElement configuration, string html, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -620,7 +626,7 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected static void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        protected void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -674,7 +680,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        protected void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -716,7 +722,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
+        protected string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
         {
             bool preventDownload = IsDownloadPrevented(resourceUrl, useHash);
             if (preventDownload)
@@ -936,7 +942,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
+        protected string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -1055,7 +1061,7 @@ namespace StaticWebEpiserverPlugin.Services
             return EnsureUrlWithoutParams(filepath);
         }
 
-        protected static void WriteFile(string filepath, byte[] data, bool? useTemporaryAttribute)
+        protected void WriteFile(string filepath, byte[] data, bool? useTemporaryAttribute)
         {
             filepath = EnsureFileSystemValid(filepath);
             var directory = Path.GetDirectoryName(filepath);
@@ -1090,6 +1096,8 @@ namespace StaticWebEpiserverPlugin.Services
                     fs.SetLength(data.Length);
                 }
             }
+
+            AfterIOWrite?.Invoke(this, new StaticWebIOEvent{ FilePath = filepath, Data = data });
         }
 
         protected List<PageData> GetPageReferencesToContent(IContentRepository repository, ContentReference contentReference)
