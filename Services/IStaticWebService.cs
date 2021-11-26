@@ -65,6 +65,9 @@ namespace StaticWebEpiserverPlugin.Services
         /// </summary>
         event EventHandler<StaticWebGeneratePageEventArgs> AfterGeneratePageWrite;
 
+        event EventHandler<StaticWebIOEvent> AfterIOWrite;
+        event EventHandler<StaticWebIOEvent> AfterIODelete;
+
         void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute);
         void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, ConcurrentDictionary<string, string> generatedResources = null);
         void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null);
