@@ -18,6 +18,7 @@ It should (havn't yet test it) be possible to create the pages directory in your
 - Supports having some pages dynamic and others generated static (see [`UseRouting`](#useroutingtruefalse-default-false) below)
 - Supports custom resource types (You can extend default or start from scratch using [`<allowedResourceTypes>`](#allowedresourcetypes-configuration))
 - Event driven page generation, always latest changes on your website (created when editor publish page or block)
+- Static content can easily be synced with cloud solutions like Azure (Example using events: [`AfterIOWrite and AfterIODelete`](https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/issues/49)
 
 **Con/limitations**
 
