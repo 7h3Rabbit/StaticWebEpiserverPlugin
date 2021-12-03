@@ -1,44 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package >
-  <metadata>
-    <id>$id$</id>
-    <version>3.0.0</version>
-    <title>StaticWebEpiserverPlugin</title>
-    <authors>7h3Rabbit</authors>
-    <owners>7h3Rabbit</owners>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <license type="expression">MIT</license>
-    <projectUrl>https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/</projectUrl>
-    <repository type="git" url="https://github.com/7h3Rabbit/StaticWebEpiserverPlugin.git" />
-    <iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
-    <description>Generate static website but still use EpiServer as your CMS for your editors</description>
-    <releaseNotes>
-		New features:
-		- Added support for content changing access righs
-		- Added support for removal of old content
-		- Added support for adding redirect pages when renaming/moving pages
-		- Added support for simple address
-		- Added support page references in ContentAreas
-		- Added support for not write to disk when not needed (if file hash matches existing content)
-		- Added support for PageControllers returning different mimeType then HTML
-		- Added support for file change events using (AfterIOWrite and AfterIODelete event)
-		- Added support to sync content to Azure Blob Storage (Thanks for suggestion maer0216-star, see issue-49 for more info)
+	<metadata>
+		<id>$id$</id>
+		<version>3.0.0</version>
+		<title>StaticWebEpiserverPlugin</title>
+		<authors>7h3Rabbit</authors>
+		<owners>7h3Rabbit</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/</projectUrl>
+		<repository type="git" url="https://github.com/7h3Rabbit/StaticWebEpiserverPlugin.git" />
+		<iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
+		<description>Generate static website but still use EpiServer as your CMS for your editors</description>
+		<releaseNotes>
+			New features:
+			- Added support for content changing access righs
+			- Added support for removal of old content
+			- Added support for adding redirect pages when renaming/moving pages
+			- Added support for simple address
+			- Added support page references in ContentAreas
+			- Added support for not write to disk when not needed (if file hash matches existing content)
+			- Added support for PageControllers returning different mimeType then HTML
+			- Added support for file change events using (AfterIOWrite and AfterIODelete event)
+			- Added support to sync content to Azure Blob Storage (Thanks for suggestion maer0216-star, see issue-49 for more info)
 
-		Bug fixes:
-		- Source tags only allowed image references, not image candidates (Thanks for bug report themaf)
-		- Removed reference to file outside of project (Thanks bug report GrumpyMeow)
-		- Child pages where not added if current page was ignored
-		- No longer writing empty resource to disk
-		- Items property on Events are now initiated and not null
+			Bug fixes:
+			- Source tags only allowed image references, not image candidates (Thanks for bug report themaf)
+			- Removed reference to file outside of project (Thanks bug report GrumpyMeow)
+			- Child pages where not added if current page was ignored
+			- No longer writing empty resource to disk
+			- Items property on Events are now initiated and not null
 
-		Additional:
-		- Added extension StaticWebEpiserverPlugin.RequiredCssOnly to allow for extraction of required CSS Only (for example to use as inline on every page)
-		- We now use regression tests to ensure quality
-	</releaseNotes>
-    <copyright>Copyright 2021</copyright>
-    <tags>episerver static-site-generator episerver-cms episerver-plugin plugin optimizly optimizly-cms azure</tags>
-    <dependencies>
-      <group targetFramework=".NETFramework4.7.2" />
-    </dependencies>
-  </metadata>
+			Additional:
+			- Added extension StaticWebEpiserverPlugin.RequiredCssOnly to allow for extraction of required CSS Only (for example to use as inline on every page)
+			- We now use regression tests to ensure quality
+		</releaseNotes>
+		<copyright>Copyright 2021</copyright>
+		<tags>episerver static-site-generator episerver-cms episerver-plugin plugin optimizly optimizly-cms azure</tags>
+		<dependencies>
+			<group targetFramework=".NETFramework4.7.2" />
+		</dependencies>
+	</metadata>
 </package>
