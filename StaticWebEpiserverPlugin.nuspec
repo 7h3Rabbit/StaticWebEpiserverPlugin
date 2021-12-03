@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>$id$</id>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
     <title>StaticWebEpiserverPlugin</title>
     <authors>7h3Rabbit</authors>
     <owners>7h3Rabbit</owners>
@@ -13,37 +13,30 @@
     <iconUrl>https://avatars2.githubusercontent.com/u/62792609</iconUrl>
     <description>Generate static website but still use EpiServer as your CMS for your editors</description>
     <releaseNotes>
-## BREAKING CHANGE ##
-Resource naming has been changed, set "StaticWeb:UseResourceUrl" to true and "StaticWeb:UseContentHash" to false to get old behavior.
+		New features:
+		- Added support for content changing access righs
+		- Added support for removal of old content
+		- Added support for adding redirect pages when renaming/moving pages
+		- Added support for simple address
+		- Added support page references in ContentAreas
+		- Added support for not write to disk when not needed (if file hash matches existing content)
+		- Added support for PageControllers returning different mimeType then HTML
+		- Added support for file change events using (AfterIOWrite and AfterIODelete event)
+		- Added support to sync content to Azure Blob Storage (Thanks for suggestion maer0216-star, see issue-49 for more info)
 
-New features:
-- Added support for using static pages inside your EpiServer installation
-- Added support for SVG-images (extension: .svg or content-type: image/svg+xml)
-- Added support for content-type: x-javascript
-- Added support for WebResource.axd and ScriptResource.axd
-- Added Visitor Group support, new criteria called "StaticWeb user" under "Technical" category
-- Now possible to specify sub folder for resources
-- Possible to disable StaticWebEpiServerPlugin from web.config
-- Default resource name is now a content hash
-- Possible to use old resource naming (by only use resource url for naming)
-- Possible to use both resource url and content hash for resource naming
-- Using new configuration element in web.config for settings
-- Add current number of pages generated ( in scheduled job )
-- Added support for resources from href attribute on a-element
-- Add ability to change supported file extensions and content types from default
+		Bug fixes:
+		- Source tags only allowed image references, not image candidates (Thanks for bug report themaf)
+		- Removed reference to file outside of project (Thanks bug report GrumpyMeow)
+		- Child pages where not added if current page was ignored
+		- No longer writing empty resource to disk
+		- Items property on Events are now initiated and not null
 
-Bug fixes:
-- We now support both ' and " for resource finding
-- Resources in CSS files are now added to references resources
-- IStaticWebIgnoreGenerate and IStaticWebIgnoreGenerateDynamically are now supported in scheduled job also
-- Scheduled job is not sending current referenced resources list to events (New property: CurrentResources)
-- Scheduled job "Generate StaticWeb" changes place in menu everytime
-
-Additional:
-- Added extension StaticWebEpiserverPlugin.RequiredCssOnly to allow for extraction of required CSS Only (for example to use as inline on every page)
-</releaseNotes>
-    <copyright>Copyright 2020</copyright>
-    <tags>episerver static-site-generator episerver-cms episerver-plugin plugin</tags>
+		Additional:
+		- Added extension StaticWebEpiserverPlugin.RequiredCssOnly to allow for extraction of required CSS Only (for example to use as inline on every page)
+		- We now use regression tests to ensure quality
+	</releaseNotes>
+    <copyright>Copyright 2021</copyright>
+    <tags>episerver static-site-generator episerver-cms episerver-plugin plugin optimizly optimizly-cms azure</tags>
     <dependencies>
       <group targetFramework=".NETFramework4.7.2" />
     </dependencies>
