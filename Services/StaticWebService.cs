@@ -633,47 +633,46 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
 
-            var matches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<resource>[^\"|']+)[\"|']");
-            foreach (Match match in matches)
+            var sourceSetMatches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<imageCandidates>[^\"|']+)[\"|']");
+            foreach (Match sourceSetMatch in sourceSetMatches)
             {
-                var group = match.Groups["resource"];
-                if (group.Success)
+                var imageCandidatesGroup = sourceSetMatch.Groups["imageCandidates"];
+                if (imageCandidatesGroup.Success)
                 {
-                    var value = group.Value;
-                    // Take into account that we can have many resource rules, for example: logo-768.png 768w, logo-768-1.5x.png 1.5x
-                    var resourceRules = value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (string resourceRule in resourceRules)
+                    var imageCandidates = imageCandidatesGroup.Value;
+                    // Take into account that we can have many image candidates, for example: logo-768.png 768w, logo-768-1.5x.png 1.5x
+                    var resourceMatches = Regex.Matches(imageCandidates, "(?<resource>[^, ]+)( [0-9.]+[w|x][,]{0,1})*");
+                    foreach (Match match in resourceMatches)
                     {
-                        // Take into account that we can have rules here, not just resource url, for example: logo-768.png 768w
-                        var resourceInfo = resourceRule.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (resourceInfo.Length < 1)
-                            continue;
-
-                        var resourceUrl = resourceInfo[0];
-
-                        if (replaceResourcePairs.ContainsKey(resourceUrl))
+                        var group = match.Groups["resource"];
+                        if (group.Success)
                         {
-                            /**
-                             * If we have already downloaded resource, we don't need to download it again.
-                             * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
-                             **/
+                            var resourceUrl = group.Value;
 
+                            if (replaceResourcePairs.ContainsKey(resourceUrl))
+                            {
+                                /**
+                                 * If we have already downloaded resource, we don't need to download it again.
+                                 * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
+                                 **/
+
+                                if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                                {
+                                    // current page has no info regarding this resource, add it
+                                    currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
+                                }
+                                continue;
+                            }
+
+                            var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, configuration.UseHash, configuration.UseResourceUrl);
+                            if (!replaceResourcePairs.ContainsKey(resourceUrl))
+                            {
+                                replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
+                            }
                             if (!currentPageResourcePairs.ContainsKey(resourceUrl))
                             {
-                                // current page has no info regarding this resource, add it
-                                currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
+                                currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
                             }
-                            continue;
-                        }
-
-                        var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, configuration.UseHash, configuration.UseResourceUrl);
-                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
-                        }
-                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
                         }
                     }
                 }
@@ -1097,7 +1096,7 @@ namespace StaticWebEpiserverPlugin.Services
                 }
             }
 
-            AfterIOWrite?.Invoke(this, new StaticWebIOEvent{ FilePath = filepath, Data = data });
+            AfterIOWrite?.Invoke(this, new StaticWebIOEvent { FilePath = filepath, Data = data });
         }
 
         protected List<PageData> GetPageReferencesToContent(IContentRepository repository, ContentReference contentReference)
