@@ -71,13 +71,16 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnContentSecuritySaved(object sender, ContentSecurityEventArg e)
         {
-            //e.ContentSecurityDescriptor.HasAccess()
-            //$"ContentSecuritySaved fired for content {e.ContentLink.ID}";
-            //var affectedContent = new List<ContentReference>();
-            //var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
-            //var descendants = contentRepository.GetDescendents(e.ContentLink);
-            //affectedContent.AddRange(descendants);
-            //affectedContent.Add(e.ContentLink);
+            var configuration = StaticWebConfiguration.CurrentSite;
+            if (configuration == null || !configuration.Enabled)
+            {
+                return;
+            }
+
+            bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
+            var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
+
+            staticWebService.GeneratePagesDependingOnContent(configuration, e.ContentLink, useTemporaryAttribute);
         }
 
         private void OnPublishingContent(object sender, ContentEventArgs e)
