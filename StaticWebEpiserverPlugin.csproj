@@ -48,10 +48,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Castle.Core" />
-    <Reference Include="Castle.Windsor" />
-    <Reference Include="EntityFramework" />
-    <Reference Include="EntityFramework.SqlServer" />
     <Reference Include="EPiServer, Version=11.20.9.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
       <HintPath>packages\EPiServer.CMS.Core.11.20.9\lib\net461\EPiServer.dll</HintPath>
     </Reference>
@@ -94,28 +90,20 @@
     <Reference Include="EPiServer.Web.WebControls, Version=11.20.9.0, Culture=neutral, PublicKeyToken=8fe83dea738b45b7, processorArchitecture=MSIL">
       <HintPath>packages\EPiServer.CMS.AspNet.11.20.9\lib\net461\EPiServer.Web.WebControls.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure" />
-    <Reference Include="Newtonsoft.Json" />
-    <Reference Include="StructureMap" />
-    <Reference Include="StructureMap.Web" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Annotations" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.OracleClient" />
-    <Reference Include="System.Data.SqlClient" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net" />
     <Reference Include="System.Runtime.Remoting" />
     <Reference Include="System.Security" />
     <Reference Include="System.Security.AccessControl" />
-    <Reference Include="System.Security.Cryptography.Xml" />
-    <Reference Include="System.Security.Permissions" />
     <Reference Include="System.Security.Principal.Windows" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Threading.AccessControl" />
-    <Reference Include="System.Threading.Tasks.Dataflow" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -124,8 +112,6 @@
     <Reference Include="System.Web.Mvc, Version=5.2.7.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.AspNet.Mvc.5.2.7\lib\net45\System.Web.Mvc.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web.Providers" />
-    <Reference Include="System.Web.Razor" />
     <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.AspNet.WebPages.3.2.7\lib\net45\System.Web.WebPages.dll</HintPath>
     </Reference>
