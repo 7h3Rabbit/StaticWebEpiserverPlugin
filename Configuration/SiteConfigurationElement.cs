@@ -22,7 +22,6 @@ namespace StaticWebEpiserverPlugin.Configuration
             isValid = (ValidateInputUrl()
                 && ValidateOutputFolder()
             && ValidateResourceFolder()
-            && ValidateResourceNaming()
             && ValidateMandatoryFields());
 
             return isValid.Value;
@@ -88,27 +87,6 @@ namespace StaticWebEpiserverPlugin.Configuration
             set { this["useRouting"] = value; }
         }
 
-        [ConfigurationProperty("useHash", DefaultValue = true, IsRequired = false)]
-        public bool UseHash
-        {
-            get
-            {
-                bool? config = (bool?)this["useHash"];
-                return config.HasValue ? config.Value : true;
-            }
-            set { this["useHash"] = value; }
-        }
-        [ConfigurationProperty("useResourceUrl", DefaultValue = false, IsRequired = false)]
-        public bool UseResourceUrl
-        {
-            get
-            {
-                bool? config = (bool?)this["useResourceUrl"];
-                return config.HasValue ? config.Value : false;
-            }
-            set { this["useResourceUrl"] = value; }
-        }
-
         [ConfigurationProperty("removeObsoleteResources", DefaultValue = false, IsRequired = false)]
         public bool RemoveObsoleteResources
         {
@@ -152,17 +130,6 @@ namespace StaticWebEpiserverPlugin.Configuration
             }
             set { this["useTemporaryAttribute"] = value; }
 
-        }
-
-        private bool ValidateResourceNaming()
-        {
-            if (!UseResourceUrl && !UseHash)
-            {
-                // One of them needs to be true, use hashing as default option
-                //UseHash = true;
-                return false;
-            }
-            return true;
         }
 
         protected bool ValidateInputUrl()

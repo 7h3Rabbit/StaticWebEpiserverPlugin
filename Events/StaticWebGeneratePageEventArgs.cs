@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using StaticWebEpiserverPlugin.Configuration;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -15,6 +16,7 @@ namespace StaticWebEpiserverPlugin.Events
 
         public string PageUrl { get; set; }
         public string SimpleAddress { get; set; }
+        public AllowedResourceTypeConfigurationElement TypeConfiguration { get; set; }
         public Dictionary<string, string> CurrentResources { get; set; }
         public ConcurrentDictionary<string, string> Resources { get; set; }
         public IEnumerable<string> FilePaths { get; set; }

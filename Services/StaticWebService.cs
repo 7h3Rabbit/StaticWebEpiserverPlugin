@@ -194,6 +194,24 @@ namespace StaticWebEpiserverPlugin.Services
                 generatePageEvent.Resources = new ConcurrentDictionary<string, string>();
             }
 
+
+            string html = null;
+            //string pageExtension = "";
+            //string pageFileName = "";
+
+            var pageTypeConfiguration = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(r => r.FileExtension == "");
+            if (pageTypeConfiguration == null)
+            {
+                // don't download resource as it is of a known type we don't want to download
+                generatePageEvent.CancelAction = true;
+                generatePageEvent.CancelReason = "AllowedResourceTypes configuration for file extension '' is missing (read: used by page).";
+            }
+            else
+            {
+                generatePageEvent.TypeConfiguration = pageTypeConfiguration;
+            }
+
+
             BeforeGeneratePage?.Invoke(this, generatePageEvent);
             // someone wants to cancel this generation of this event.
             if (generatePageEvent.CancelAction)
@@ -202,8 +220,6 @@ namespace StaticWebEpiserverPlugin.Services
             }
 
             BeforeGetPageContent?.Invoke(this, generatePageEvent);
-
-            string html = null;
 
             if (configuration.UseRouting)
             {
@@ -214,16 +230,15 @@ namespace StaticWebEpiserverPlugin.Services
                 }
             }
 
-            string pageExtension = ".html";
             // someone wants to cancel this generation of this event.
             if (!generatePageEvent.CancelAction)
             {
-                var resourceInfo = DownloadResource(configuration.Url, pageUrl, null, false);
+                var resourceInfo = DownloadResource(configuration.Url, pageUrl, generatePageEvent.TypeConfiguration);
                 if (resourceInfo != null)
                 {
-                    if (!string.IsNullOrEmpty(resourceInfo.Extension))
+                    if (generatePageEvent.TypeConfiguration.MimeType.StartsWith("*"))
                     {
-                        pageExtension = resourceInfo.Extension;
+                        generatePageEvent.TypeConfiguration = resourceInfo.TypeConfiguration;
                     }
 
                     if (resourceInfo.Data != null)
@@ -269,14 +284,14 @@ namespace StaticWebEpiserverPlugin.Services
             // We don't care about a cancel action here
             AfterEnsurePageResources?.Invoke(this, generatePageEvent);
 
-            string filePath = configuration.OutputPath + relativePath + "index" + pageExtension;
+            string filePath = configuration.OutputPath + relativePath + generatePageEvent.TypeConfiguration.DefaultName + generatePageEvent.TypeConfiguration.FileExtension;
             var filePaths = new List<string>
             {
                 filePath
             };
             if (hasSimpleAddress)
             {
-                string filePath2 = configuration.OutputPath + relativeSimplePath + "index" + pageExtension;
+                string filePath2 = configuration.OutputPath + relativeSimplePath + generatePageEvent.TypeConfiguration.DefaultName + generatePageEvent.TypeConfiguration.FileExtension;
                 filePaths.Add(filePath2);
             }
             generatePageEvent.FilePaths = filePaths;
@@ -663,8 +678,7 @@ namespace StaticWebEpiserverPlugin.Services
                                 }
                                 continue;
                             }
-
-                            var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, configuration.UseHash, configuration.UseResourceUrl);
+                            var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
                             if (!replaceResourcePairs.ContainsKey(resourceUrl))
                             {
                                 replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
@@ -708,7 +722,7 @@ namespace StaticWebEpiserverPlugin.Services
                         continue;
                     }
 
-                    var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, configuration.UseHash, configuration.UseResourceUrl);
+                    var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
                     if (!replaceResourcePairs.ContainsKey(resourceUrl))
                     {
                         replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
@@ -721,33 +735,27 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
+        protected string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
         {
-            bool preventDownload = IsDownloadPrevented(resourceUrl, useHash);
+            var extension = GetExtension(resourceUrl);
+            bool preventDownload = IsDownloadPrevented(resourceUrl + extension);
             if (preventDownload)
             {
                 // don't download resource as it is of a known type we don't want to download
                 return null;
             }
 
-            var extension = GetExtension(resourceUrl);
-
-            // Support special edge case width axd resources (only supported when using hash naming)
-            if (extension == ".axd")
+            var configuration = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(r => r.FileExtension == extension);
+            if (configuration == null)
             {
-                extension = null;
-            }
-
-            var resourceInfo = DownloadResource(rootUrl, resourceUrl, extension, useHash);
-            if (resourceInfo == null)
-            {
-                // error occured, ignore
+                // don't download resource as it is of a known type we don't want to download
                 return null;
             }
 
-            if (string.IsNullOrEmpty(resourceInfo.Extension))
+            var resourceInfo = DownloadResource(rootUrl, resourceUrl, configuration);
+            if (resourceInfo == null)
             {
-                // Extension of resource is not allowed, ignore
+                // error occured OR resource type not allowed, ignore
                 return null;
             }
 
@@ -756,17 +764,17 @@ namespace StaticWebEpiserverPlugin.Services
                 case ".css":
                     // Do more work for this type of resource
                     var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                    var newCssResourceUrl = EnsureCssResources(rootUrl, rootPath, resourcePath, resourceUrl, content, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, useHash, useResourceUrl);
+                    var newCssResourceUrl = EnsureCssResources(rootUrl, rootPath, resourcePath, resourceUrl, content, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, resourceInfo.TypeConfiguration);
                     return newCssResourceUrl;
                 default:
                     // For approved file extensions that we don't need to do any changes on
-                    string newResourceUrl = GetNewResourceUrl(resourcePath, resourceUrl, resourceInfo.Extension, resourceInfo.Data, useHash, useResourceUrl);
+                    string newResourceUrl = GetNewResourceUrl(resourcePath, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
 
                     var hasContent = resourceInfo.Data != null && resourceInfo.Data.LongLength > 0;
                     if (newResourceUrl != null && hasContent)
                     {
                         var filepath = rootPath + newResourceUrl.Replace("/", "\\");
-                        if (!useResourceUrl)
+                        if (resourceInfo.TypeConfiguration.UseHash)
                         {
                             // We are using hash ONLY as file name so no need to replace file that already exists
                             if (File.Exists(filepath))
@@ -784,7 +792,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected static bool IsDownloadPrevented(string resourceUrl, bool useHash)
+        protected static bool IsDownloadPrevented(string resourceUrl)
         {
             if (string.IsNullOrEmpty(resourceUrl))
             {
@@ -802,28 +810,11 @@ namespace StaticWebEpiserverPlugin.Services
             }
 
             var extension = GetExtension(resourceUrl);
-            switch (extension)
-            {
-                case ".axd": // Assembly Web Resouces (Will validate against content-type)
-                             // We only allow .axd when using hash (else we will overwrite same file with different content)
-                    return !useHash;
-                case "":
-                    // missing extension, download and look at contenttype
-                    // this happens for script and css bundles for examples
-                    return false;
-                default:
-                    var allowedExtensionConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.FileExtension == extension);
-                    if (allowedExtensionConfig == null)
-                    {
-                        // unkown extension, ignore
-                        return true;
-                    }
-                    // extension is allowed, download it
-                    return false;
-            }
+            var allowedExtensionConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.FileExtension == extension);
+            return (allowedExtensionConfig == null);
         }
 
-        protected static StaticWebDownloadResult DownloadResource(string rootUrl, string resourceUrl, string extension, bool useHash)
+        protected static StaticWebDownloadResult DownloadResource(string rootUrl, string resourceUrl, AllowedResourceTypeConfigurationElement typeConfiguration)
         {
             StaticWebDownloadResult result = new StaticWebDownloadResult();
 
@@ -832,10 +823,9 @@ namespace StaticWebEpiserverPlugin.Services
             referencableClient.Headers.Set(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36 StaticWebPlugin/0.1");
             referencableClient.Encoding = Encoding.UTF8;
 
-            byte[] data = null;
             try
             {
-                data = referencableClient.DownloadData(rootUrl + resourceUrl);
+                byte[] data = referencableClient.DownloadData(rootUrl + resourceUrl);
                 result.Data = data;
             }
             catch (WebException)
@@ -851,19 +841,21 @@ namespace StaticWebEpiserverPlugin.Services
             if (string.IsNullOrEmpty(contentType))
                 return null;
 
-            result.ContentType = contentType;
-
-            if (string.IsNullOrEmpty(extension))
+            if (typeConfiguration.MimeType.StartsWith("*"))
             {
-                var tmpExtension = GetExtensionForKnownContentType(result.ContentType);
-                if (!IsDownloadPrevented(resourceUrl + tmpExtension, useHash))
+                var extensionConfig = GetConfigurationForKnownContentType(contentType);
+                if (extensionConfig != null && !IsDownloadPrevented(resourceUrl + extensionConfig.FileExtension))
                 {
-                    result.Extension = tmpExtension;
+                    result.TypeConfiguration = extensionConfig;
+                }
+                else
+                {
+                    return null;
                 }
             }
             else
             {
-                result.Extension = extension;
+                result.TypeConfiguration = typeConfiguration;
             }
 
             return result;
@@ -894,9 +886,47 @@ namespace StaticWebEpiserverPlugin.Services
             return typeConfig.FileExtension;
         }
 
-        protected static string GetNewResourceUrl(string resourcePath, string resourceUrl, string extension, byte[] data, bool useHash = true, bool useResourceUrl = false)
+        protected static string GetDefaultNameForKnownContentType(string contentType)
         {
-            if (useResourceUrl)
+            if (string.IsNullOrEmpty(contentType))
+            {
+                return null;
+            }
+
+            contentType = contentType.Trim().ToLower();
+
+            var typeConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.MimeType == contentType);
+            if (typeConfig == null)
+                return null;
+
+            return typeConfig.DefaultName;
+        }
+
+        protected static AllowedResourceTypeConfigurationElement GetConfigurationForKnownContentType(string contentType)
+        {
+            if (string.IsNullOrEmpty(contentType))
+            {
+                return null;
+            }
+
+            contentType = contentType.Trim().ToLower();
+
+            var typeConfig = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(type => type.MimeType == contentType);
+            if (typeConfig == null)
+                return null;
+
+            return typeConfig;
+        }
+
+        protected static string GetNewResourceUrl(string resourcePath, string resourceUrl, byte[] data, AllowedResourceTypeConfigurationElement typeConfiguration)
+        {
+            if (typeConfiguration == null)
+                return null;
+
+            if (!typeConfiguration.UseResourceFolder)
+                resourcePath = "";
+
+            if (typeConfiguration.UseResourceUrl)
             {
                 if (string.IsNullOrEmpty(resourceUrl))
                 {
@@ -907,14 +937,19 @@ namespace StaticWebEpiserverPlugin.Services
                  * make sure to not get a folder name with a file name, for example: /globalassets/alloy-plan/alloyplan.png/size700.png
                  * alloyplan.png here would cause error (IF we also have the orginal image) as we can't have a file and a folder with the same name.
                  */
-                resourceUrl = resourceUrl.Replace(extension, "");
+                resourceUrl = resourceUrl.Replace(typeConfiguration.FileExtension, "");
 
                 resourceUrl = EnsureUrlWithoutParams(resourceUrl);
+
+                if (resourceUrl.EndsWith("/"))
+                {
+                    resourceUrl = resourceUrl + typeConfiguration.DefaultName;
+                }
             }
 
             // If we have disabled usage of resourceUrl, force usage of hash
             string hash = "";
-            if (!useResourceUrl || useHash)
+            if (!typeConfiguration.UseResourceUrl || typeConfiguration.UseHash)
             {
                 // We can't calculate hash on null, abort
                 if (data == null)
@@ -927,21 +962,21 @@ namespace StaticWebEpiserverPlugin.Services
                 }
             }
 
-            if (useResourceUrl && useHash)
+            if (typeConfiguration.UseResourceUrl && typeConfiguration.UseHash)
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + "-" + hash + extension)).Replace("//", "/");
+                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + "-" + hash + typeConfiguration.FileExtension)).Replace("//", "/");
             }
-            else if (useResourceUrl)
+            else if (typeConfiguration.UseResourceUrl)
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + extension)).Replace("//", "/");
+                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + typeConfiguration.FileExtension)).Replace("//", "/");
             }
             else
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(hash + extension)).Replace("//", "/");
+                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(hash + typeConfiguration.FileExtension)).Replace("//", "/");
             }
         }
 
-        protected string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool useHash = true, bool useResourceUrl = false)
+        protected string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, AllowedResourceTypeConfigurationElement cssTypeConfiguration)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -966,7 +1001,7 @@ namespace StaticWebEpiserverPlugin.Services
                         resourceUrl = directory.Replace(@"\", "/") + "/" + resourceUrl;
                     }
 
-                    string newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, useHash, useResourceUrl);
+                    string newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
                     if (!string.IsNullOrEmpty(newResourceUrl))
                     {
                         content = content.Replace(orginalUrl, newResourceUrl);
@@ -995,13 +1030,13 @@ namespace StaticWebEpiserverPlugin.Services
             }
 
             var data = Encoding.UTF8.GetBytes(content);
-            string newCssResourceUrl = GetNewResourceUrl(resourcePath, url, ".css", data, useHash, useResourceUrl);
+            string newCssResourceUrl = GetNewResourceUrl(resourcePath, url, data, cssTypeConfiguration);
 
             var hasContent = data != null && data.LongLength > 0;
             if (newCssResourceUrl != null && hasContent)
             {
                 var filepath = rootPath + newCssResourceUrl.Replace("/", "\\");
-                if (!useResourceUrl)
+                if (cssTypeConfiguration.UseHash)
                 {
                     // We are using hash ONLY as file name so no need to replace file that already exists
                     if (File.Exists(filepath))
