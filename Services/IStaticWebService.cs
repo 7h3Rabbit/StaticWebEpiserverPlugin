@@ -79,6 +79,7 @@ namespace StaticWebEpiserverPlugin.Services
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, bool removeSubFolders);
         void RemovePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, ContentReference contentReference);
+        string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute);
         string GetPageUrl(ContentReference contentLink, CultureInfo language = null);
         void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl);
         Dictionary<string, string> GetPageLanguageUrls(IContentRepository contentRepository, ContentReference contentReference);

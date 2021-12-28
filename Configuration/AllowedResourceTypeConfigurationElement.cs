@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using StaticWebEpiserverPlugin.Models;
+using System.Configuration;
 
 namespace StaticWebEpiserverPlugin.Configuration
 {
@@ -58,6 +59,14 @@ namespace StaticWebEpiserverPlugin.Configuration
             get { return (string)this["defaultName"]; }
             set { this["defaultName"] = value; }
         }
+
+        [ConfigurationProperty("denendencyLookup", DefaultValue = ResourceDependencyLookup.None, IsRequired = false)]
+        public ResourceDependencyLookup DenendencyLookup
+        {
+            get { return (ResourceDependencyLookup)this["denendencyLookup"]; }
+            set { this["denendencyLookup"] = value; }
+        }
+
 
         public AllowedResourceTypeConfigurationElement()
         {

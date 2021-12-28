@@ -35,6 +35,9 @@ namespace StaticWebEpiserverPlugin.Services
         public event EventHandler<StaticWebIOEvent> AfterIOWrite;
         public event EventHandler<StaticWebIOEvent> AfterIODelete;
 
+        public ITextResourceDependencyService _htmlDependencyService = new HtmlDependencyService();
+        public ITextResourceDependencyService _cssDependencyService = new CssDependencyService();
+
         public StaticWebService()
         {
         }
@@ -196,8 +199,6 @@ namespace StaticWebEpiserverPlugin.Services
 
 
             string html = null;
-            //string pageExtension = "";
-            //string pageFileName = "";
 
             var pageTypeConfiguration = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(r => r.FileExtension == "");
             if (pageTypeConfiguration == null)
@@ -274,7 +275,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = EnsurePageResources(configuration, generatePageEvent.Content, useTemporaryAttribute, generatePageEvent.CurrentResources, generatePageEvent.Resources);
+                generatePageEvent.Content = _htmlDependencyService.EnsureDependencies(generatePageEvent.Content, this, configuration, useTemporaryAttribute, generatePageEvent.CurrentResources, generatePageEvent.Resources);
             }
 
             // reset cancel action and reason
@@ -596,146 +597,22 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected string EnsurePageResources(SiteConfigurationElement configuration, string html, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
+
+        protected string EnsureDependencies(string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
         {
-            if (configuration == null || !configuration.Enabled)
+            switch (typeConfiguration.DenendencyLookup)
             {
-                return html;
-            }
-
-            if (currentPageResourcePairs == null)
-            {
-                currentPageResourcePairs = new Dictionary<string, string>();
-            }
-
-            if (replaceResourcePairs == null)
-            {
-                replaceResourcePairs = new ConcurrentDictionary<string, string>();
-            }
-
-            // make sure we have all resources from script, link and img tags for current page
-            // <(script|link|img).*(href|src)="(?<resource>[^"]+)
-            EnsureScriptAndLinkAndImgAndATagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute);
-
-            // make sure we have all source resources for current page
-            // <(source).*(srcset)="(?<resource>[^"]+)"
-            EnsureSourceTagSupport(configuration, ref html, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute);
-
-            // TODO: make sure we have all meta resources for current page
-            // Below matches ALL meta content that is a URL
-            // <(meta).*(content)="(?<resource>(http:\/\/|https:\/\/|\/)[^"]+)"
-            // Below matches ONLY known properties
-            // <(meta).*(property|name)="(twitter:image|og:image)".*(content)="(?<resource>[http:\/\/|https:\/\/|\/][^"]+)"
-
-
-            var sbHtml = new StringBuilder(html);
-            foreach (KeyValuePair<string, string> pair in replaceResourcePairs)
-            {
-                // We have a value if we want to replace orginal url with a new one
-                if (pair.Value != null)
-                {
-                    sbHtml = sbHtml.Replace(pair.Key, pair.Value);
-                }
-            }
-
-            return sbHtml.ToString();
-        }
-
-        protected void EnsureSourceTagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
-        {
-            if (configuration == null || !configuration.Enabled)
-            {
-                return;
-            }
-
-            var sourceSetMatches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<imageCandidates>[^\"|']+)[\"|']");
-            foreach (Match sourceSetMatch in sourceSetMatches)
-            {
-                var imageCandidatesGroup = sourceSetMatch.Groups["imageCandidates"];
-                if (imageCandidatesGroup.Success)
-                {
-                    var imageCandidates = imageCandidatesGroup.Value;
-                    // Take into account that we can have many image candidates, for example: logo-768.png 768w, logo-768-1.5x.png 1.5x
-                    var resourceMatches = Regex.Matches(imageCandidates, "(?<resource>[^, ]+)( [0-9.]+[w|x][,]{0,1})*");
-                    foreach (Match match in resourceMatches)
-                    {
-                        var group = match.Groups["resource"];
-                        if (group.Success)
-                        {
-                            var resourceUrl = group.Value;
-
-                            if (replaceResourcePairs.ContainsKey(resourceUrl))
-                            {
-                                /**
-                                 * If we have already downloaded resource, we don't need to download it again.
-                                 * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
-                                 **/
-
-                                if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                                {
-                                    // current page has no info regarding this resource, add it
-                                    currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
-                                }
-                                continue;
-                            }
-                            var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
-                            if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                            {
-                                replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
-                            }
-                            if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                            {
-                                currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
-                            }
-                        }
-                    }
-                }
+                case ResourceDependencyLookup.Html:
+                    return _htmlDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+                case ResourceDependencyLookup.Css:
+                    return _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+                case ResourceDependencyLookup.None:
+                default:
+                    return content;
             }
         }
 
-        protected void EnsureScriptAndLinkAndImgAndATagSupport(SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
-        {
-            if (configuration == null || !configuration.Enabled)
-            {
-                return;
-            }
-
-            var matches = Regex.Matches(html, "<(script|link|img|a).*(href|src)=[\"|'](?<resource>[^\"|']+)");
-            foreach (Match match in matches)
-            {
-                var group = match.Groups["resource"];
-                if (group.Success)
-                {
-                    var resourceUrl = group.Value;
-                    if (replaceResourcePairs.ContainsKey(resourceUrl))
-                    {
-                        /**
-                         * If we have already downloaded resource, we don't need to download it again.
-                         * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
-                         **/
-
-                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            // current page has no info regarding this resource, add it
-                            currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
-                        }
-                        continue;
-                    }
-
-                    var newResourceUrl = EnsureResource(configuration.Url, configuration.OutputPath, configuration.ResourceFolder, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
-                    if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                    {
-                        replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
-                    }
-                    if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                    {
-                        currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
-                    }
-                }
-            }
-        }
-
-        protected string EnsureResource(string rootUrl, string rootPath, string resourcePath, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        public string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
         {
             var extension = GetExtension(resourceUrl);
             bool preventDownload = IsDownloadPrevented(resourceUrl + extension);
@@ -745,14 +622,14 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
-            var configuration = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(r => r.FileExtension == extension);
-            if (configuration == null)
+            var fileExtensionConfiguration = StaticWebConfiguration.AllowedResourceTypes.FirstOrDefault(r => r.FileExtension == extension);
+            if (fileExtensionConfiguration == null)
             {
                 // don't download resource as it is of a known type we don't want to download
                 return null;
             }
 
-            var resourceInfo = DownloadResource(rootUrl, resourceUrl, configuration);
+            var resourceInfo = DownloadResource(siteConfiguration.Url, resourceUrl, fileExtensionConfiguration);
             if (resourceInfo == null)
             {
                 // error occured OR resource type not allowed, ignore
@@ -764,16 +641,37 @@ namespace StaticWebEpiserverPlugin.Services
                 case ".css":
                     // Do more work for this type of resource
                     var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                    var newCssResourceUrl = EnsureCssResources(rootUrl, rootPath, resourcePath, resourceUrl, content, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, resourceInfo.TypeConfiguration);
-                    return newCssResourceUrl;
+                    content = _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+                    var data = Encoding.UTF8.GetBytes(content);
+                    string newCssResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, data, resourceInfo.TypeConfiguration);
+
+                    var hasCssContent = data != null && data.LongLength > 0;
+                    if (newCssResourceUrl != null && hasCssContent)
+                    {
+                        var filepath = siteConfiguration.OutputPath + newCssResourceUrl.Replace("/", "\\");
+                        if (resourceInfo.TypeConfiguration.UseHash)
+                        {
+                            // We are using hash ONLY as file name so no need to replace file that already exists
+                            if (File.Exists(filepath))
+                                return newCssResourceUrl;
+                        }
+
+                        WriteFile(filepath, data, useTemporaryAttribute);
+                        return newCssResourceUrl;
+                    }
+                    else
+                    {
+                        // Resource is not valid, return null
+                        return null;
+                    }
                 default:
                     // For approved file extensions that we don't need to do any changes on
-                    string newResourceUrl = GetNewResourceUrl(resourcePath, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
+                    string newResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
 
                     var hasContent = resourceInfo.Data != null && resourceInfo.Data.LongLength > 0;
                     if (newResourceUrl != null && hasContent)
                     {
-                        var filepath = rootPath + newResourceUrl.Replace("/", "\\");
+                        var filepath = siteConfiguration.OutputPath + newResourceUrl.Replace("/", "\\");
                         if (resourceInfo.TypeConfiguration.UseHash)
                         {
                             // We are using hash ONLY as file name so no need to replace file that already exists
@@ -987,83 +885,6 @@ namespace StaticWebEpiserverPlugin.Services
                 {
                     return (resourcePath + EnsureFileSystemValid(resourceUrl + typeConfiguration.FileExtension)).Replace("//", "/");
                 }
-            }
-        }
-
-        protected string EnsureCssResources(string rootUrl, string rootPath, string resourcePath, string url, string content, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, AllowedResourceTypeConfigurationElement cssTypeConfiguration)
-        {
-            // Download and ensure files referenced are downloaded also
-            var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
-            foreach (Match match in matches)
-            {
-                var group = match.Groups["resource"];
-                if (group.Success)
-                {
-                    var orginalUrl = group.Value;
-                    var resourceUrl = orginalUrl;
-                    var directory = url.Substring(0, url.LastIndexOf('/'));
-                    var changedDir = false;
-                    while (resourceUrl.StartsWith("../"))
-                    {
-                        changedDir = true;
-                        resourceUrl = resourceUrl.Remove(0, 3);
-                        directory = directory.Substring(0, directory.LastIndexOf('/'));
-                    }
-
-                    if (changedDir)
-                    {
-                        resourceUrl = directory.Replace(@"\", "/") + "/" + resourceUrl;
-                    }
-
-                    string newResourceUrl = EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
-                    if (!string.IsNullOrEmpty(newResourceUrl))
-                    {
-                        content = content.Replace(orginalUrl, newResourceUrl);
-                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
-                        }
-                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
-                        }
-                    }
-                    else
-                    {
-                        content = content.Replace(orginalUrl, "/" + resourcePath.Replace(@"\", "/") + resourceUrl);
-                        if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            replaceResourcePairs.TryAdd(resourceUrl, null);
-                        }
-                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                        {
-                            currentPageResourcePairs.Add(resourceUrl, null);
-                        }
-                    }
-                }
-            }
-
-            var data = Encoding.UTF8.GetBytes(content);
-            string newCssResourceUrl = GetNewResourceUrl(resourcePath, url, data, cssTypeConfiguration);
-
-            var hasContent = data != null && data.LongLength > 0;
-            if (newCssResourceUrl != null && hasContent)
-            {
-                var filepath = rootPath + newCssResourceUrl.Replace("/", "\\");
-                if (cssTypeConfiguration.UseHash)
-                {
-                    // We are using hash ONLY as file name so no need to replace file that already exists
-                    if (File.Exists(filepath))
-                        return newCssResourceUrl;
-                }
-
-                WriteFile(filepath, data, useTemporaryAttribute);
-                return newCssResourceUrl;
-            }
-            else
-            {
-                // Resource is not valid, return null
-                return null;
             }
         }
 
