@@ -781,6 +781,12 @@ namespace StaticWebEpiserverPlugin.Services
                                 return newResourceUrl;
                         }
 
+                        var shouldMaintainUrl = !resourceInfo.TypeConfiguration.UseHash && !resourceInfo.TypeConfiguration.UseResourceFolder && resourceInfo.TypeConfiguration.UseResourceUrl;
+                        if (filepath.EndsWith("\\") && shouldMaintainUrl)
+                        {
+                            filepath = filepath + resourceInfo.TypeConfiguration.DefaultName + resourceInfo.TypeConfiguration.FileExtension;
+                        }
+
                         WriteFile(filepath, resourceInfo.Data, useTemporaryAttribute);
                         return newResourceUrl;
                     }
@@ -923,8 +929,14 @@ namespace StaticWebEpiserverPlugin.Services
             if (typeConfiguration == null)
                 return null;
 
-            if (!typeConfiguration.UseResourceFolder)
-                resourcePath = "";
+            if (typeConfiguration.UseResourceFolder)
+            {
+                resourcePath = "/" + resourcePath.Replace(@"\", "/") + "/";
+            }
+            else
+            {
+                resourcePath = "/";
+            }
 
             if (typeConfiguration.UseResourceUrl)
             {
@@ -940,11 +952,6 @@ namespace StaticWebEpiserverPlugin.Services
                 resourceUrl = resourceUrl.Replace(typeConfiguration.FileExtension, "");
 
                 resourceUrl = EnsureUrlWithoutParams(resourceUrl);
-
-                if (resourceUrl.EndsWith("/"))
-                {
-                    resourceUrl = resourceUrl + typeConfiguration.DefaultName;
-                }
             }
 
             // If we have disabled usage of resourceUrl, force usage of hash
@@ -964,15 +971,22 @@ namespace StaticWebEpiserverPlugin.Services
 
             if (typeConfiguration.UseResourceUrl && typeConfiguration.UseHash)
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + "-" + hash + typeConfiguration.FileExtension)).Replace("//", "/");
+                return (resourcePath + EnsureFileSystemValid(resourceUrl + "-" + hash + typeConfiguration.FileExtension)).Replace("//", "/");
             }
-            else if (typeConfiguration.UseResourceUrl)
+            else if (typeConfiguration.UseHash)
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(resourceUrl + typeConfiguration.FileExtension)).Replace("//", "/");
+                return (resourcePath + EnsureFileSystemValid(hash + typeConfiguration.FileExtension)).Replace("//", "/");
             }
             else
             {
-                return ("/" + resourcePath.Replace(@"\", "/") + "/" + EnsureFileSystemValid(hash + typeConfiguration.FileExtension)).Replace("//", "/");
+                if (resourceUrl.EndsWith("/"))
+                {
+                    return (resourcePath + EnsureFileSystemValid(resourceUrl)).Replace("//", "/");
+                }
+                else
+                {
+                    return (resourcePath + EnsureFileSystemValid(resourceUrl + typeConfiguration.FileExtension)).Replace("//", "/");
+                }
             }
         }
 
