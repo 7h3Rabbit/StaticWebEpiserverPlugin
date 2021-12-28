@@ -69,9 +69,10 @@ namespace StaticWebEpiserverPlugin.Configuration
         {
             List<AllowedResourceTypeConfigurationElement> allowedResourceTypes = new List<AllowedResourceTypeConfigurationElement>
             {
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, DefaultName = "index", UseResourceFolder = false },
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".xml", MimeType = "application/xml", UseHash = false, UseResourceUrl = true, DefaultName = "index", UseResourceFolder = false },
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".txt", MimeType = "text/plain", UseHash = false, UseResourceUrl = true, DefaultName = "index", UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".xml", MimeType = "application/xml", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".json", MimeType = "application/json", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".txt", MimeType = "text/plain", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".axd", MimeType = "*.axd", UseHash = true, UseResourceUrl = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = "", MimeType = "*", UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".css", MimeType = "text/css", UseHash = true, UseResourceUrl = false },

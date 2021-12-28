@@ -52,7 +52,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             set { this["useHash"] = value; }
         }
 
-        [ConfigurationProperty("defaultName", DefaultValue = null, IsRequired = false)]
+        [ConfigurationProperty("defaultName", DefaultValue = "index", IsRequired = false)]
         public string DefaultName
         {
             get { return (string)this["defaultName"]; }
