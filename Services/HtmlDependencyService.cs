@@ -135,14 +135,6 @@ namespace StaticWebEpiserverPlugin.Services
                     }
 
                     var newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
-                    if (!replaceResourcePairs.ContainsKey(resourceUrl))
-                    {
-                        replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
-                    }
-                    if (!currentPageResourcePairs.ContainsKey(resourceUrl))
-                    {
-                        currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
-                    }
                 }
             }
         }

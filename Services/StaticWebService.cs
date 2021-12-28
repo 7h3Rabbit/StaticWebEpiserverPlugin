@@ -275,7 +275,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = _htmlDependencyService.EnsureDependencies(generatePageEvent.Content, this, configuration, useTemporaryAttribute, generatePageEvent.CurrentResources, generatePageEvent.Resources);
+                generatePageEvent.Content = EnsureDependencies(generatePageEvent.Content, configuration, useTemporaryAttribute, generatePageEvent.TypeConfiguration, generatePageEvent.CurrentResources, generatePageEvent.Resources);
             }
 
             // reset cancel action and reason
@@ -629,6 +629,12 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
+            string oldResultingResourceUrl;
+            if (replaceResourcePairs.TryGetValue(resourceUrl, out oldResultingResourceUrl))
+            {
+                return oldResultingResourceUrl;
+            }
+
             var resourceInfo = DownloadResource(siteConfiguration.Url, resourceUrl, fileExtensionConfiguration);
             if (resourceInfo == null)
             {
@@ -636,63 +642,49 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
-            switch (resourceInfo.Extension)
+            // For approved file extensions that we don't need to do any changes on
+            string newResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
+
+            if (!replaceResourcePairs.ContainsKey(resourceUrl))
             {
-                case ".css":
-                    // Do more work for this type of resource
-                    var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                    content = _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
-                    var data = Encoding.UTF8.GetBytes(content);
-                    string newCssResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, data, resourceInfo.TypeConfiguration);
+                replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
+            }
+            if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+            {
+                currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
+            }
 
-                    var hasCssContent = data != null && data.LongLength > 0;
-                    if (newCssResourceUrl != null && hasCssContent)
-                    {
-                        var filepath = siteConfiguration.OutputPath + newCssResourceUrl.Replace("/", "\\");
-                        if (resourceInfo.TypeConfiguration.UseHash)
-                        {
-                            // We are using hash ONLY as file name so no need to replace file that already exists
-                            if (File.Exists(filepath))
-                                return newCssResourceUrl;
-                        }
+            if (resourceInfo.TypeConfiguration.DenendencyLookup != ResourceDependencyLookup.None)
+            {
+                var content = Encoding.UTF8.GetString(resourceInfo.Data);
+                content = EnsureDependencies(content, siteConfiguration, useTemporaryAttribute, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs);
+                resourceInfo.Data = Encoding.UTF8.GetBytes(content);
+            }
 
-                        WriteFile(filepath, data, useTemporaryAttribute);
-                        return newCssResourceUrl;
-                    }
-                    else
-                    {
-                        // Resource is not valid, return null
-                        return null;
-                    }
-                default:
-                    // For approved file extensions that we don't need to do any changes on
-                    string newResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
-
-                    var hasContent = resourceInfo.Data != null && resourceInfo.Data.LongLength > 0;
-                    if (newResourceUrl != null && hasContent)
-                    {
-                        var filepath = siteConfiguration.OutputPath + newResourceUrl.Replace("/", "\\");
-                        if (resourceInfo.TypeConfiguration.UseHash)
-                        {
-                            // We are using hash ONLY as file name so no need to replace file that already exists
-                            if (File.Exists(filepath))
-                                return newResourceUrl;
-                        }
-
-                        var shouldMaintainUrl = !resourceInfo.TypeConfiguration.UseHash && !resourceInfo.TypeConfiguration.UseResourceFolder && resourceInfo.TypeConfiguration.UseResourceUrl;
-                        if (filepath.EndsWith("\\") && shouldMaintainUrl)
-                        {
-                            filepath = filepath + resourceInfo.TypeConfiguration.DefaultName + resourceInfo.TypeConfiguration.FileExtension;
-                        }
-
-                        WriteFile(filepath, resourceInfo.Data, useTemporaryAttribute);
+            var hasContent = resourceInfo.Data != null && resourceInfo.Data.LongLength > 0;
+            if (newResourceUrl != null && hasContent)
+            {
+                var filepath = siteConfiguration.OutputPath + newResourceUrl.Replace("/", "\\");
+                if (resourceInfo.TypeConfiguration.UseHash)
+                {
+                    // We are using hash ONLY as file name so no need to replace file that already exists
+                    if (File.Exists(filepath))
                         return newResourceUrl;
-                    }
-                    else
-                    {
-                        // Resource is not valid, return null
-                        return null;
-                    }
+                }
+
+                var shouldMaintainUrl = !resourceInfo.TypeConfiguration.UseHash && !resourceInfo.TypeConfiguration.UseResourceFolder && resourceInfo.TypeConfiguration.UseResourceUrl;
+                if (filepath.EndsWith("\\") && shouldMaintainUrl)
+                {
+                    filepath = filepath + resourceInfo.TypeConfiguration.DefaultName + resourceInfo.TypeConfiguration.FileExtension;
+                }
+
+                WriteFile(filepath, resourceInfo.Data, useTemporaryAttribute);
+                return newResourceUrl;
+            }
+            else
+            {
+                // Resource is not valid, return null
+                return null;
             }
         }
 
