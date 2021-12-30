@@ -68,18 +68,18 @@ namespace StaticWebEpiserverPlugin.Services
         event EventHandler<StaticWebIOEvent> AfterIOWrite;
         event EventHandler<StaticWebIOEvent> AfterIODelete;
 
-        void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute);
-        void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, ConcurrentDictionary<string, string> generatedResources = null);
-        void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null);
+        void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
+        void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null);
+        void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null);
         void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress);
-        void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink, bool? useTemporaryAttribute);
-        void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute);
-        void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page);
+        void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
+        void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
+        void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page, bool ignoreHtmlDependencies);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, string orginalUrl, bool removeSubFolders = false);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language);
         void RemoveGeneratedPage(SiteConfigurationElement configuration, ContentReference contentLink, CultureInfo language, bool removeSubFolders);
         void RemovePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, ContentReference contentReference);
-        string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute);
+        string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, int callDepth = 0);
         string GetPageUrl(ContentReference contentLink, CultureInfo language = null);
         void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl);
         Dictionary<string, string> GetPageLanguageUrls(IContentRepository contentRepository, ContentReference contentReference);

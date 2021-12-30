@@ -9,7 +9,7 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class HtmlDependencyService : ITextResourceDependencyService
     {
-        public string EnsureDependencies(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
+        public string EnsureDependencies(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -28,11 +28,11 @@ namespace StaticWebEpiserverPlugin.Services
 
             // make sure we have all resources from script, link and img tags for current page
             // <(script|link|img).*(href|src)="(?<resource>[^"]+)
-            EnsureScriptAndLinkAndImgAndATagSupport(staticWebService, configuration, ref content, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute);
+            EnsureScriptAndLinkAndImgAndATagSupport(staticWebService, configuration, ref content, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
 
             // make sure we have all source resources for current page
             // <(source).*(srcset)="(?<resource>[^"]+)"
-            EnsureSourceTagSupport(staticWebService, configuration, ref content, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute);
+            EnsureSourceTagSupport(staticWebService, configuration, ref content, ref currentPageResourcePairs, ref replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
 
             // TODO: make sure we have all meta resources for current page
             // Below matches ALL meta content that is a URL
@@ -53,7 +53,7 @@ namespace StaticWebEpiserverPlugin.Services
             return sbHtml.ToString();
         }
 
-        protected void EnsureSourceTagSupport(IStaticWebService staticWebService, SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        protected void EnsureSourceTagSupport(IStaticWebService staticWebService, SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -90,7 +90,7 @@ namespace StaticWebEpiserverPlugin.Services
                                 }
                                 continue;
                             }
-                            var newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
+                            var newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
                             if (!replaceResourcePairs.ContainsKey(resourceUrl))
                             {
                                 replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
@@ -105,7 +105,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        protected void EnsureScriptAndLinkAndImgAndATagSupport(IStaticWebService staticWebService, SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        protected void EnsureScriptAndLinkAndImgAndATagSupport(IStaticWebService staticWebService, SiteConfigurationElement configuration, ref string html, ref Dictionary<string, string> currentPageResourcePairs, ref ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -134,7 +134,15 @@ namespace StaticWebEpiserverPlugin.Services
                         continue;
                     }
 
-                    var newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
+                    var newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
+                    if (!replaceResourcePairs.ContainsKey(resourceUrl))
+                    {
+                        replaceResourcePairs.TryAdd(resourceUrl, newResourceUrl);
+                    }
+                    if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                    {
+                        currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
+                    }
                 }
             }
         }

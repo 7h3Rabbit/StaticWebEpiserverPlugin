@@ -8,7 +8,7 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class CssDependencyService : ITextResourceDependencyService
     {
-        public string EnsureDependencies(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
+        public string EnsureDependencies(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -25,11 +25,11 @@ namespace StaticWebEpiserverPlugin.Services
                 replaceResourcePairs = new ConcurrentDictionary<string, string>();
             }
 
-            content = EnsureUrlReferenceSupport(content, staticWebService, configuration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+            content = EnsureUrlReferenceSupport(content, staticWebService, configuration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs);
             return content;
         }
 
-        private static string EnsureUrlReferenceSupport(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs)
+        private static string EnsureUrlReferenceSupport(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, int callDepth = 0)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -56,7 +56,7 @@ namespace StaticWebEpiserverPlugin.Services
                         resourceUrl = directory.Replace(@"\", "/") + "/" + resourceUrl;
                     }
 
-                    string newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
+                    string newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
                     // TODO: Temporary removed subfolder support for css resources, should it be fixed or?
                     //string newResourceUrl = staticWebService.EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
                     if (!string.IsNullOrEmpty(newResourceUrl))

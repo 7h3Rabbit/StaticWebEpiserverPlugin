@@ -157,11 +157,11 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
         }
-        public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, ConcurrentDictionary<string, string> generatedResources = null)
+        public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null)
         {
             string pageUrl, simpleAddress;
             GetUrlsForPage(page, lang, out pageUrl, out simpleAddress);
-            GeneratePage(configuration, pageUrl, useTemporaryAttribute, simpleAddress, generatedResources);
+            GeneratePage(configuration, pageUrl, useTemporaryAttribute, ignoreHtmlDependencies, simpleAddress, generatedResources);
         }
 
         public void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress)
@@ -170,7 +170,7 @@ namespace StaticWebEpiserverPlugin.Services
             pageUrl = GetPageUrl(page.ContentLink.ToReferenceWithoutVersion(), lang);
         }
 
-        public void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null)
+        public void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -275,7 +275,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = EnsureDependencies(generatePageEvent.Content, configuration, useTemporaryAttribute, generatePageEvent.TypeConfiguration, generatePageEvent.CurrentResources, generatePageEvent.Resources);
+                generatePageEvent.Content = EnsureDependencies(generatePageEvent.Content, configuration, useTemporaryAttribute, ignoreHtmlDependencies, generatePageEvent.TypeConfiguration, generatePageEvent.CurrentResources, generatePageEvent.Resources, 0);
             }
 
             // reset cancel action and reason
@@ -389,7 +389,7 @@ namespace StaticWebEpiserverPlugin.Services
             return orginalUrl;
         }
 
-        public void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink, bool? useTemporaryAttribute)
+        public void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink, bool? useTemporaryAttribute, bool ignoreHtmlDependencies)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -425,7 +425,7 @@ namespace StaticWebEpiserverPlugin.Services
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
                 {
-                    GeneratePage(configuration, page, lang, useTemporaryAttribute);
+                    GeneratePage(configuration, page, lang, useTemporaryAttribute, ignoreHtmlDependencies);
                 }
             }
         }
@@ -461,7 +461,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        public void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page)
+        public void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page, bool ignoreHtmlDependencies)
         {
             // This page type should be ignored
             if (page is IStaticWebIgnoreGenerate)
@@ -492,11 +492,11 @@ namespace StaticWebEpiserverPlugin.Services
                 }
 
                 bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
-                GeneratePage(configuration, langPage, lang, useTemporaryAttribute);
+                GeneratePage(configuration, langPage, lang, useTemporaryAttribute, ignoreHtmlDependencies);
             }
         }
 
-        public void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute)
+        public void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute, bool ignoreHtmlDependencies)
         {
             // This page or block type should be ignored
             if (content is IStaticWebIgnoreGenerate)
@@ -529,16 +529,16 @@ namespace StaticWebEpiserverPlugin.Services
                     }
                 }
 
-                GeneratePage(configuration, page, page.Language, useTemporaryAttribute, null);
+                GeneratePage(configuration, page, page.Language, useTemporaryAttribute, ignoreHtmlDependencies, null);
             }
             else if (content is BlockData)
             {
                 var block = content as BlockData;
-                GeneratePagesDependingOnBlock(configuration, contentReference, useTemporaryAttribute);
+                GeneratePagesDependingOnBlock(configuration, contentReference, useTemporaryAttribute, ignoreHtmlDependencies);
             }
         }
 
-        public void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute)
+        public void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute, bool ignoreHtmlDependencies)
         {
             var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
             var references = contentRepository.GetReferencesToContent(contentReference, false).GroupBy(x => x.OwnerID + "-" + x.OwnerLanguage);
@@ -558,11 +558,11 @@ namespace StaticWebEpiserverPlugin.Services
                 var referencedContent = contentRepository.Get<IContent>(item.OwnerID.ToReferenceWithoutVersion(), item.OwnerLanguage);
                 if (referencedContent is PageData)
                 {
-                    GeneratePage(item.OwnerID, referencedContent, useTemporaryAttribute);
+                    GeneratePage(item.OwnerID, referencedContent, useTemporaryAttribute, ignoreHtmlDependencies);
                 }
                 else if (referencedContent is BlockData)
                 {
-                    GeneratePagesDependingOnBlock(configuration, item.OwnerID, useTemporaryAttribute);
+                    GeneratePagesDependingOnBlock(configuration, item.OwnerID, useTemporaryAttribute, ignoreHtmlDependencies);
                 }
             }
         }
@@ -597,22 +597,23 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-
-        protected string EnsureDependencies(string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null)
+        protected string EnsureDependencies(string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             switch (typeConfiguration.DenendencyLookup)
             {
                 case ResourceDependencyLookup.Html:
-                    return _htmlDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+                    if (ignoreHtmlDependencies && callDepth != 0)
+                        return content;
+                    return _htmlDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
                 case ResourceDependencyLookup.Css:
-                    return _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, currentPageResourcePairs, replaceResourcePairs);
+                    return _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
                 case ResourceDependencyLookup.None:
                 default:
                     return content;
             }
         }
 
-        public string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute)
+        public string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, int callDepth = 0)
         {
             var extension = GetExtension(resourceUrl);
             bool preventDownload = IsDownloadPrevented(resourceUrl + extension);
@@ -642,6 +643,11 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
+            if (ignoreHtmlDependencies && callDepth != 0 && resourceInfo.TypeConfiguration.DenendencyLookup == ResourceDependencyLookup.Html)
+            {
+                return null;
+            }
+
             // For approved file extensions that we don't need to do any changes on
             string newResourceUrl = GetNewResourceUrl(siteConfiguration.ResourceFolder, resourceUrl, resourceInfo.Data, resourceInfo.TypeConfiguration);
 
@@ -657,7 +663,7 @@ namespace StaticWebEpiserverPlugin.Services
             if (resourceInfo.TypeConfiguration.DenendencyLookup != ResourceDependencyLookup.None)
             {
                 var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                content = EnsureDependencies(content, siteConfiguration, useTemporaryAttribute, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs);
+                content = EnsureDependencies(content, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs, callDepth);
                 resourceInfo.Data = Encoding.UTF8.GetBytes(content);
             }
 

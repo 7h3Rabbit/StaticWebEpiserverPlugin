@@ -22,6 +22,9 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
     [ScheduledPlugIn(DisplayName = "Generate StaticWeb", SortIndex = 100000, GUID = "da758e76-02ec-449e-8b34-999769cafb68")]
     public class StaticWebScheduledJob : ScheduledJobBase
     {
+        // We set this as false to generate all subpages as well
+        private const bool IGNORE_HTML_DEPENDENCIES = false;
+
         protected bool _stopSignaled;
         protected IStaticWebService _staticWebService;
         protected IContentRepository _contentRepository;
@@ -111,14 +114,14 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 // Runt first page first to get most of the common resources
                 var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
-                _staticWebService.GeneratePage(configuration, firstPageUrl, useTemporaryAttribute, null, _generatedResources);
+                _staticWebService.GeneratePage(configuration, firstPageUrl, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
 
                 // We now probably have most common
                 var pages = _sitePages[configuration.Name].Skip(1).ToList();
                 Parallel.ForEach(pages, parallelOptions, (pageUrl) =>
                  {
                      // TODO: Change this to handle SimpleAddress...
-                     _staticWebService.GeneratePage(configuration, pageUrl, useTemporaryAttribute, null, _generatedResources);
+                     _staticWebService.GeneratePage(configuration, pageUrl, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
                  });
 
                 if (configuration.UseRouting)

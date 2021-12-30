@@ -12,8 +12,10 @@ namespace StaticWebEpiserverPlugin.Interfaces
             IStaticWebService staticWebService,
             SiteConfigurationElement configuration,
             bool? useTemporaryAttribute,
+            bool ignoreHtmlDependencies,
             Dictionary<string, string> currentPageResourcePairs = null,
-            ConcurrentDictionary<string, string> replaceResourcePairs = null
+            ConcurrentDictionary<string, string> replaceResourcePairs = null,
+            int callDepth = 0
             );
     }
 }
