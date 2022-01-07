@@ -8,6 +8,7 @@ namespace StaticWebEpiserverPlugin.Interfaces
     public interface ITextResourceDependencyService
     {
         string EnsureDependencies(
+            string referencingUrl,
             string content,
             IStaticWebService staticWebService,
             SiteConfigurationElement configuration,

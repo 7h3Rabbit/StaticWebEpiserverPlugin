@@ -275,7 +275,7 @@ namespace StaticWebEpiserverPlugin.Services
             // someone wants to cancel/ignore ensuring resources.
             if (!generatePageEvent.CancelAction)
             {
-                generatePageEvent.Content = EnsureDependencies(generatePageEvent.Content, configuration, useTemporaryAttribute, ignoreHtmlDependencies, generatePageEvent.TypeConfiguration, generatePageEvent.CurrentResources, generatePageEvent.Resources, 0);
+                generatePageEvent.Content = EnsureDependencies(generatePageEvent.PageUrl, generatePageEvent.Content, configuration, useTemporaryAttribute, ignoreHtmlDependencies, generatePageEvent.TypeConfiguration, generatePageEvent.CurrentResources, generatePageEvent.Resources, 0);
             }
 
             // reset cancel action and reason
@@ -597,16 +597,16 @@ namespace StaticWebEpiserverPlugin.Services
             return html;
         }
 
-        protected string EnsureDependencies(string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
+        protected string EnsureDependencies(string referencingUrl, string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             switch (typeConfiguration.DenendencyLookup)
             {
                 case ResourceDependencyLookup.Html:
                     if (ignoreHtmlDependencies && callDepth != 0)
                         return content;
-                    return _htmlDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
+                    return _htmlDependencyService.EnsureDependencies(referencingUrl, content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
                 case ResourceDependencyLookup.Css:
-                    return _cssDependencyService.EnsureDependencies(content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
+                    return _cssDependencyService.EnsureDependencies(referencingUrl, content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
                 case ResourceDependencyLookup.None:
                 default:
                     return content;
@@ -663,7 +663,7 @@ namespace StaticWebEpiserverPlugin.Services
             if (resourceInfo.TypeConfiguration.DenendencyLookup != ResourceDependencyLookup.None)
             {
                 var content = Encoding.UTF8.GetString(resourceInfo.Data);
-                content = EnsureDependencies(content, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs, callDepth);
+                content = EnsureDependencies(resourceUrl, content, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs, callDepth);
                 resourceInfo.Data = Encoding.UTF8.GetBytes(content);
             }
 

@@ -8,7 +8,7 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class CssDependencyService : ITextResourceDependencyService
     {
-        public string EnsureDependencies(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
+        public string EnsureDependencies(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
             {
@@ -25,11 +25,11 @@ namespace StaticWebEpiserverPlugin.Services
                 replaceResourcePairs = new ConcurrentDictionary<string, string>();
             }
 
-            content = EnsureUrlReferenceSupport(content, staticWebService, configuration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs);
+            content = EnsureUrlReferenceSupport(referencingUrl, content, staticWebService, configuration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs);
             return content;
         }
 
-        private static string EnsureUrlReferenceSupport(string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, int callDepth = 0)
+        private static string EnsureUrlReferenceSupport(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, int callDepth = 0)
         {
             // Download and ensure files referenced are downloaded also
             var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
@@ -41,15 +41,13 @@ namespace StaticWebEpiserverPlugin.Services
                     var orginalUrl = group.Value;
                     var resourceUrl = orginalUrl;
                     var changedDir = false;
-                    var directory = "/";
-                    // TODO: Temporary removed subfolder support for css resources, should it be fixed or?
-                    //var directory = url.Substring(0, url.LastIndexOf('/'));
-                    //while (resourceUrl.StartsWith("../"))
-                    //{
-                    //    changedDir = true;
-                    //    resourceUrl = resourceUrl.Remove(0, 3);
-                    //    directory = directory.Substring(0, directory.LastIndexOf('/'));
-                    //}
+                    var directory = referencingUrl.Substring(0, referencingUrl.LastIndexOf('/'));
+                    while (resourceUrl.StartsWith("../"))
+                    {
+                        changedDir = true;
+                        resourceUrl = resourceUrl.Remove(0, 3);
+                        directory = directory.Substring(0, directory.LastIndexOf('/'));
+                    }
 
                     if (changedDir)
                     {
@@ -57,8 +55,6 @@ namespace StaticWebEpiserverPlugin.Services
                     }
 
                     string newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
-                    // TODO: Temporary removed subfolder support for css resources, should it be fixed or?
-                    //string newResourceUrl = staticWebService.EnsureResource(rootUrl, rootPath, resourcePath, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute);
                     if (!string.IsNullOrEmpty(newResourceUrl))
                     {
                         content = content.Replace(orginalUrl, newResourceUrl);
