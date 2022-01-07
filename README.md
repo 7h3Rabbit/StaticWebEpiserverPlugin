@@ -98,6 +98,9 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
   - documents (pdf)
   - Icons (ico)
   - Assembly Resources (WebResource.axd and ScriptResource.axd as long as resulting content type are allowed)
+  - json (no dependencies)
+  - xml (no dependencies)
+  - txt
 
 The rest will be ignored.
 
@@ -105,7 +108,7 @@ The rest will be ignored.
 
 ## Requirements ##
 
-- EpiServer 7.5+
+- EpiServer 11+
 - .Net 4.7.2+
 - All pages need to inherit from PageData
 - All blocks needs to inherit from BlockData
@@ -163,8 +166,6 @@ With the `<sites>` configuration you can define multiple websites and also have 
                 `outputPath=""`
                 `resourceFolder=""`
                 `useRouting="true/false"`  (default: `false`)
-                `useHash="true/false"` (default: `true`)
-                `useResourceUrl="true/false"` (default: `false`)
                 `removeObsoleteResources="true/false"` (default: `false`)
                 `removeObsoletePages="true/false"` (default: `false`)
                 ` />`
@@ -198,14 +199,6 @@ You should also look at: `useHash` and `useResourceUrl`.
 By setting this to "true" you allow StaticWebEpiServerPlugin to write pages and resources inside a EpiServer instance and taking over the routing for pages it has generated static html pages, returning them instead of calling the page controllers.
 Relative resource path needs to be set also to use this (read more on `useResourceUrl`).
 
-### `UseHash="true/false"` (default: `true`) ###
-Tells StaticWebEpiServerPlugin to generate content hash and use for resource name.
-_( This value has to be true to support .axd resources and make them static)_
-
-### `UseResourceUrl="true/false"` (default: `false`) ###
-Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
-_(If you also set `useHash` to true it will combine the two)_
-
 ### `removeObsoletePages="true/false"` (default: `false`) ###
 Specifies if scheduled job should remove generated resources not being used by any generated pages anymore. 
 _(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
@@ -227,12 +220,29 @@ This is usefull if you for example want to extend support for more file extensio
 The `<allowedResourceTypes>` should be a direct child element to the `<staticweb>` element in your web.config.
 Below you will find how it can be used.
 
+### `UseHash="true/false"` (default: `true`) ###
+Tells StaticWebEpiServerPlugin to generate content hash and use for resource name.
+_( This value has to be true to support .axd resources and make them static)_
+
+### `UseResourceUrl="true/false"` (default: `false`) ###
+Tells StaticWebEpiServerPlugin to use orginal resource url for resource name.
+_(If you also set `useHash` to true it will combine the two)_
+
+### `UseResourceFolder="true/false"` (default: `true`) ###
+Tells StaticWebEpiServerPlugin to use place this type of file in the resource folder.
+By default it is only `.html`, `.xml`, `.json` and `.txt` that has this set to false so they can keep relative url.
+
+### `DenendencyLookup="None/Html/Css"` (default: `None`) ###
+Tells StaticWebEpiServerPlugin that this file type should look for dependencies using the specified lookup method.
+Could be usefull if you add support for a new type of file type.
+
 ### Add/extend support for resource type ###
 Below illustrate how to extend the default resource types that are being supported by adding support for the .mp4 file extension and bind it to the video/mp4 mime type.
 
 	`<allowedResourceTypes>
 		<add fileExtension=".mp4" mimeType="video/mp4" />
 	</allowedResourceTypes>`
+	
 
 ### Define your own list of allowed resource types ###
 Below illustrate how to remove the default resource types and start from scratch.
