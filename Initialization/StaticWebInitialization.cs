@@ -18,6 +18,9 @@ namespace StaticWebEpiserverPlugin.Initialization
     [ModuleDependency(typeof(EPiServer.Web.InitializationModule))]
     public class StaticWebInitialization : IInitializableModule, IConfigurableModule
     {
+        // We set this as true to NOT generate all subpages as well
+        private const bool IGNORE_HTML_DEPENDENCIES = true;
+
         public void Initialize(InitializationEngine context)
         {
             DependencyResolver.SetResolver(new StaticWebServiceLocatorDependencyResolver(context.Locate.Advanced));
@@ -80,7 +83,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
 
-            staticWebService.GeneratePagesDependingOnContent(configuration, e.ContentLink, useTemporaryAttribute);
+            staticWebService.GeneratePagesDependingOnContent(configuration, e.ContentLink, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES);
         }
 
         private void OnPublishingContent(object sender, ContentEventArgs e)
@@ -114,7 +117,7 @@ namespace StaticWebEpiserverPlugin.Initialization
 
             bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute);
+            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES);
 
             if (isPage)
             {
@@ -151,7 +154,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             if (!movedToWasteBasket)
             {
                 // Moved somewhere, generate pages again
-                staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, page);
+                staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, page, IGNORE_HTML_DEPENDENCIES);
 
                 var descendents = moveContentEvent.Descendents.ToList();
                 foreach (ContentReference contentReference in descendents)
@@ -159,7 +162,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                     PageData subPage;
                     if (contentRepository.TryGet<PageData>(contentReference, out subPage))
                     {
-                        staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, subPage);
+                        staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, subPage, IGNORE_HTML_DEPENDENCIES);
                     }
                 }
 
@@ -211,9 +214,9 @@ namespace StaticWebEpiserverPlugin.Initialization
 
             bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
             var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
-            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute);
+            staticWebService.GeneratePage(e.ContentLink, e.Content, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES);
 
-            staticWebService.GeneratePagesDependingOnContent(configuration, e.ContentLink, useTemporaryAttribute);
+            staticWebService.GeneratePagesDependingOnContent(configuration, e.ContentLink, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES);
 
             if (isPage)
             {

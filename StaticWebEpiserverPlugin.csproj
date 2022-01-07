@@ -131,6 +131,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Channels\StaticWebChannel.cs" />
+    <Compile Include="Interfaces\ITextResourceDependencyService.cs" />
+    <Compile Include="Models\ResourceDependencyLookup.cs" />
     <Compile Include="Configuration\StaticWebConfiguration.cs" />
     <Compile Include="Configuration\StaticWebConfigurationSection.cs" />
     <Compile Include="Configuration\AllowedResourceTypeConfigurationElement.cs" />
@@ -147,6 +149,8 @@
     <Compile Include="Initialization\StaticWebInitialization.cs" />
     <Compile Include="Routing\StaticWebRouting.cs" />
     <Compile Include="ScheduledJobs\StaticWebScheduledJob.cs" />
+    <Compile Include="Services\CssDependencyService.cs" />
+    <Compile Include="Services\HtmlDependencyService.cs" />
     <Compile Include="Services\IStaticWebService.cs" />
     <Compile Include="Services\StaticWebService.cs" />
     <Compile Include="Initialization\StaticWebServiceLocatorDependencyResolver.cs" />

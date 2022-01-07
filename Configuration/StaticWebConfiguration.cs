@@ -1,4 +1,5 @@
 ﻿using EPiServer.Web;
+using StaticWebEpiserverPlugin.Models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -50,8 +51,6 @@ namespace StaticWebEpiserverPlugin.Configuration
                 OutputPath = ConfigurationManager.AppSettings["StaticWeb:OutputFolder"],
                 ResourceFolder = ConfigurationManager.AppSettings["StaticWeb:ResourceFolder"],
                 Url = ConfigurationManager.AppSettings["StaticWeb:InputUrl"],
-                UseHash = ConfigurationManager.AppSettings["StaticWeb:UseContentHash"] == "true",
-                UseResourceUrl = ConfigurationManager.AppSettings["StaticWeb:UseResourceUrl"] == "true",
                 UseRouting = ConfigurationManager.AppSettings["StaticWeb:UseRouting"] == "true"
             };
         }
@@ -65,25 +64,34 @@ namespace StaticWebEpiserverPlugin.Configuration
             return _Config.Sites;
         }
 
+        public static string SpecialMimeType = "*";
+
         public static List<AllowedResourceTypeConfigurationElement> GetFallbackAllowedResourceTypes()
         {
-            List<AllowedResourceTypeConfigurationElement> allowedResourceTypes = new List<AllowedResourceTypeConfigurationElement>();
-
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".css", MimeType = "text/css" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "text/javascript" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "application/javascript" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "application/x-javascript" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".png", MimeType = "image/png" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpg", MimeType = "image/jpg" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpe", MimeType = "image/jpe" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpeg", MimeType = "image/jpeg" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".gif", MimeType = "image/gif" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".ico", MimeType = "image/vnd.microsoft.icon" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".webp", MimeType = "image/webp" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".svg", MimeType = "image/svg+xml" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".pdf", MimeType = "application/pdf" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff", MimeType = "font/woff" });
-            allowedResourceTypes.Add(new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff2", MimeType = "font/woff2" });
+            List<AllowedResourceTypeConfigurationElement> allowedResourceTypes = new List<AllowedResourceTypeConfigurationElement>
+            {
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false, DenendencyLookup = ResourceDependencyLookup.Html },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".xml", MimeType = "application/xml", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".json", MimeType = "application/json", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".txt", MimeType = "text/plain", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".axd", MimeType = "*.axd", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = "", MimeType = "*", UseResourceFolder = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".css", MimeType = "text/css", UseHash = true, UseResourceUrl = false, DenendencyLookup = ResourceDependencyLookup.Css },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "text/javascript", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "application/javascript", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".js", MimeType = "application/x-javascript", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".png", MimeType = "image/png", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpg", MimeType = "image/jpg", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpe", MimeType = "image/jpe", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".jpeg", MimeType = "image/jpeg", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".gif", MimeType = "image/gif", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".ico", MimeType = "image/vnd.microsoft.icon", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".webp", MimeType = "image/webp", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".svg", MimeType = "image/svg+xml", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".pdf", MimeType = "application/pdf", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff", MimeType = "font/woff", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff2", MimeType = "font/woff2", UseHash = true, UseResourceUrl = false }
+            };
 
             return allowedResourceTypes;
         }
