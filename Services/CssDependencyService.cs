@@ -8,6 +8,8 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class CssDependencyService : ITextResourceDependencyService
     {
+        static readonly Regex REGEX_FIND_URL_REFERENCE = new Regex("url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)", RegexOptions.Compiled);
+
         public string EnsureDependencies(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
@@ -32,7 +34,7 @@ namespace StaticWebEpiserverPlugin.Services
         private static string EnsureUrlReferenceSupport(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, int callDepth = 0)
         {
             // Download and ensure files referenced are downloaded also
-            var matches = Regex.Matches(content, "url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)");
+            var matches = REGEX_FIND_URL_REFERENCE.Matches(content);
             foreach (Match match in matches)
             {
                 var group = match.Groups["resource"];

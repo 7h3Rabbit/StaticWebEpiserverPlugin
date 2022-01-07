@@ -22,6 +22,9 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class StaticWebService : IStaticWebService
     {
+        static readonly Regex REGEX_FIND_EPISERVER_INTERNAL_URL_REFERENCE = new Regex("href=[\"|'](?<resource>\\/link\\/[0-9a-f]{32}.aspx)[\"|']", RegexOptions.Compiled);
+
+
         public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGeneratePage;
         public event EventHandler<StaticWebGeneratePageEventArgs> BeforeGetPageContent;
         public event EventHandler<StaticWebGeneratePageEventArgs> AfterGetPageContent;
@@ -571,7 +574,7 @@ namespace StaticWebEpiserverPlugin.Services
         {
             var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
 
-            var matches = Regex.Matches(html, "href=[\"|'](?<resource>\\/link\\/[0-9a-f]{32}.aspx)[\"|']");
+            var matches = REGEX_FIND_EPISERVER_INTERNAL_URL_REFERENCE.Matches(html);
             foreach (Match match in matches)
             {
                 var group = match.Groups["resource"];

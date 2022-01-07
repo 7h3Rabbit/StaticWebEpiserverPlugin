@@ -9,6 +9,10 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class HtmlDependencyService : ITextResourceDependencyService
     {
+        static readonly Regex REGEX_FIND_SOURCE_REFERENCE = new Regex("<(source).*(srcset)=[\"|'](?<imageCandidates>[^\"|']+)[\"|']", RegexOptions.Compiled);
+        static readonly Regex REGEX_FIND_SOURCE_RESOUCE_REFERENCE = new Regex("(?<resource>[^, ]+)( [0-9.]+[w|x][,]{0,1})*", RegexOptions.Compiled);
+        static readonly Regex REGEX_FIND_SCRIPT_OR_LINK_OR_IMG_OR_A_URL_REFERENCE = new Regex("<(script|link|img|a).*(href|src)=[\"|'](?<resource>[^\"|']+)", RegexOptions.Compiled);
+
         public string EnsureDependencies(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
             if (configuration == null || !configuration.Enabled)
@@ -60,7 +64,7 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
 
-            var sourceSetMatches = Regex.Matches(html, "<(source).*(srcset)=[\"|'](?<imageCandidates>[^\"|']+)[\"|']");
+            var sourceSetMatches = REGEX_FIND_SOURCE_REFERENCE.Matches(html);
             foreach (Match sourceSetMatch in sourceSetMatches)
             {
                 var imageCandidatesGroup = sourceSetMatch.Groups["imageCandidates"];
@@ -68,7 +72,7 @@ namespace StaticWebEpiserverPlugin.Services
                 {
                     var imageCandidates = imageCandidatesGroup.Value;
                     // Take into account that we can have many image candidates, for example: logo-768.png 768w, logo-768-1.5x.png 1.5x
-                    var resourceMatches = Regex.Matches(imageCandidates, "(?<resource>[^, ]+)( [0-9.]+[w|x][,]{0,1})*");
+                    var resourceMatches = REGEX_FIND_SOURCE_RESOUCE_REFERENCE.Matches(imageCandidates);
                     foreach (Match match in resourceMatches)
                     {
                         var group = match.Groups["resource"];
@@ -112,7 +116,7 @@ namespace StaticWebEpiserverPlugin.Services
                 return;
             }
 
-            var matches = Regex.Matches(html, "<(script|link|img|a).*(href|src)=[\"|'](?<resource>[^\"|']+)");
+            var matches = REGEX_FIND_SCRIPT_OR_LINK_OR_IMG_OR_A_URL_REFERENCE.Matches(html);
             foreach (Match match in matches)
             {
                 var group = match.Groups["resource"];
