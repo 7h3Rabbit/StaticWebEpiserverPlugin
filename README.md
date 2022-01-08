@@ -177,25 +177,25 @@ Specifies a name for your website.
 If specified it will be used in Scheduled job status information.
 By default this is will use EpiServer site name if used.
 
-### `Enabled="true/false"` (default: `true`) ###
+### `enabled="true/false"` (default: `true`) ###
 Allows you to disable plugin by just changing configuration.
 Good if you temporarly want to disable plugin or if you on one server want to disable functionality (for example on editor only servers).
 
-### `Url="http://localhost:49822/"` (_required_) ###
+### `url="http://localhost:49822/"` (_required_) ###
 Specifies url to use as base url for this website.
 Make sure it matches one specified in EpiServer under `Config` -> `Manage Websites.
 
-### `OutputPath="C:\websites\website1\wwwroot"` (_required_) ###
+### `outputPath="C:\websites\website1\wwwroot"` (_required_) ###
 Folder to write your static website to.
 This can be any folder you have read, write and change access to.
 For example a GitHub repository folder, folder used directly by IIS or directly into your EpiServer website (look more at: `userRouting`).
 
-### `ResourceFolder="cache\v1"` (default: ``) ###
+### `resourceFolder="cache\v1"` (default: ``) ###
 Sub folder of `outputPath` to write resources to.
 Above tells StaticWebEpiServerPlugin to use a subfolder `cache\v1` for all resources.
 You should also look at: `useHash` and `useResourceUrl`.
 
-### `UseRouting="true/false"` (default: `false`) ###
+### `useRouting="true/false"` (default: `false`) ###
 By setting this to "true" you allow StaticWebEpiServerPlugin to write pages and resources inside a EpiServer instance and taking over the routing for pages it has generated static html pages, returning them instead of calling the page controllers.
 Relative resource path needs to be set also to use this (read more on `useResourceUrl`).
 
@@ -203,7 +203,7 @@ Relative resource path needs to be set also to use this (read more on `useResour
 Specifies if scheduled job should remove generated resources not being used by any generated pages anymore. 
 _(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
 
-### `RemoveObsoleteResources="true/false"` (default: `false`) ###
+### `removeObsoleteResources="true/false"` (default: `false`) ###
 Specifies if scheduled job should remove generated pages not represented in EpiServer anymore. 
 _(Please note that enabling this can be dangerous as other files might be deleted if not setup correctly, backup everyhing before use)_
 
@@ -214,6 +214,7 @@ This attribute may be used for identify high priority changes when you have a cu
 (It is better to use rsync or similar instead of this if possible).
 
 ### `generateOrderForScheduledJob="Default/UrlDepthFirst/UrlBreadthFirst"` (default: `Default`) ###
+You can read a summary below or get more info on orginal [issue #64](https://github.com/7h3Rabbit/StaticWebEpiserverPlugin/issues/64)
 `Default` is for when you don't care about the order "Generate StaticWeb" scheduled job generate pages.
 It will generate the pages in the order it handles them.
 
