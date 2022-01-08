@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StaticWebEpiserverPlugin.Models;
+using System;
 using System.Configuration;
 using System.IO;
 
@@ -40,7 +41,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["enabled"];
-                if (config.HasValue ? config.Value : true)
+                if (config ?? true)
                 {
                     return IsValid();
                 }
@@ -51,28 +52,28 @@ namespace StaticWebEpiserverPlugin.Configuration
         [ConfigurationProperty("name", DefaultValue = "", IsKey = true, IsRequired = true)]
         public string Name
         {
-            get { return _name != null ? _name : (string)this["name"]; }
+            get { return _name ?? (string)this["name"]; }
             set { _name = value; }
         }
 
         [ConfigurationProperty("url", DefaultValue = "", IsRequired = true)]
         public string Url
         {
-            get { return _url != null ? _url : (string)this["url"]; }
+            get { return _url ?? (string)this["url"]; }
             set { _url = value; }
         }
 
         [ConfigurationProperty("outputPath", DefaultValue = "", IsRequired = true)]
         public string OutputPath
         {
-            get { return _outputPath != null ? _outputPath : (string)this["outputPath"]; }
+            get { return _outputPath ?? (string)this["outputPath"]; }
             set { _outputPath = value; }
         }
 
         [ConfigurationProperty("resourceFolder", DefaultValue = "", IsRequired = false)]
         public string ResourceFolder
         {
-            get { return _resourceFolder != null ? _resourceFolder : (string)this["resourceFolder"]; }
+            get { return _resourceFolder ?? (string)this["resourceFolder"]; }
             set { _resourceFolder = value; }
         }
 
@@ -82,7 +83,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["useRouting"];
-                return config.HasValue ? config.Value : false;
+                return config ?? false;
             }
             set { this["useRouting"] = value; }
         }
@@ -93,7 +94,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["removeObsoleteResources"];
-                return config.HasValue ? config.Value : false;
+                return config ?? false;
             }
             set { this["removeObsoleteResources"] = value; }
         }
@@ -104,7 +105,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["removeObsoletePages"];
-                return config.HasValue ? config.Value : false;
+                return config ?? false;
             }
             set { this["removeObsoletePages"] = value; }
         }
@@ -114,7 +115,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 int? config = (int?)this["maxDegreeOfParallelismForScheduledJob"];
-                return config.HasValue ? config.Value : 1;
+                return config ?? 1;
             }
             set { this["maxDegreeOfParallelismForScheduledJob"] = value; }
 
@@ -131,6 +132,14 @@ namespace StaticWebEpiserverPlugin.Configuration
             set { this["useTemporaryAttribute"] = value; }
 
         }
+
+        [ConfigurationProperty("generateOrderForScheduledJob", DefaultValue = GenerateOrderForScheduledJob.Default, IsRequired = false)]
+        public GenerateOrderForScheduledJob GenerateOrderForScheduledJob
+        {
+            get { return (GenerateOrderForScheduledJob)this["generateOrderForScheduledJob"]; }
+            set { this["generateOrderForScheduledJob"] = value; }
+        }
+
 
         protected bool ValidateInputUrl()
         {
@@ -169,7 +178,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             if (!OutputPath.EndsWith("\\"))
             {
                 // Make sure it can be combined with _resourcePath
-                OutputPath = OutputPath + "\\";
+                OutputPath += "\\";
             }
 
 

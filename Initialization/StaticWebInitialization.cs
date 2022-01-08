@@ -48,7 +48,6 @@ namespace StaticWebEpiserverPlugin.Initialization
             var isPage = e.Content is PageData;
             if (isPage)
             {
-                var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
 
                 var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
@@ -61,7 +60,6 @@ namespace StaticWebEpiserverPlugin.Initialization
             var isPage = e.Content is PageData;
             if (isPage)
             {
-                var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
                 var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
 
@@ -91,7 +89,6 @@ namespace StaticWebEpiserverPlugin.Initialization
             var isPage = e.Content is PageData;
             if (isPage)
             {
-                var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
 
                 var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
@@ -102,7 +99,6 @@ namespace StaticWebEpiserverPlugin.Initialization
         private void OnDeletedContent(object sender, DeleteContentEventArgs e)
         {
             var isPage = e.Content is PageData;
-            var isBlock = e.Content is BlockData;
             if (!isPage)
             {
                 // Content is not of type PageData or BlockData, ignore
@@ -122,8 +118,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             if (isPage)
             {
                 // Handle renaming of pages
-                var oldUrl = e.Items["StaticWeb-OldUrl"] as string;
-                if (oldUrl != null)
+                if (e.Items["StaticWeb-OldUrl"] is string oldUrl)
                 {
                     var removeSubFolders = true;
                     staticWebService.RemoveGeneratedPage(configuration, oldUrl, removeSubFolders);
@@ -133,8 +128,7 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnMovedContent(object sender, ContentEventArgs e)
         {
-            var page = e.Content as PageData;
-            if (page == null)
+            if (!(e.Content is PageData page))
             {
                 return;
             }
@@ -142,7 +136,6 @@ namespace StaticWebEpiserverPlugin.Initialization
             var moveContentEvent = e as MoveContentEventArgs;
 
             var movedToWasteBasket = moveContentEvent.TargetLink.ID == ContentReference.WasteBasket.ID;
-            var movedFromWasteBasket = moveContentEvent.OriginalParent.ID == ContentReference.WasteBasket.ID;
 
             // TODO: Sadly this is a syncronized event, look if we can thread this so we are not locking user interface until generation of pages are done
 
@@ -159,8 +152,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                 var descendents = moveContentEvent.Descendents.ToList();
                 foreach (ContentReference contentReference in descendents)
                 {
-                    PageData subPage;
-                    if (contentRepository.TryGet<PageData>(contentReference, out subPage))
+                    if (contentRepository.TryGet<PageData>(contentReference, out PageData subPage))
                     {
                         staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, subPage, IGNORE_HTML_DEPENDENCIES);
                     }
@@ -185,8 +177,7 @@ namespace StaticWebEpiserverPlugin.Initialization
             else
             {
                 // Remove page as it was added to WasteBasket
-                var oldUrls = e.Items["StaticWeb-OldLanguageUrls"] as Dictionary<string, string>;
-                if (oldUrls != null)
+                if (e.Items["StaticWeb-OldLanguageUrls"] is Dictionary<string, string> oldUrls)
                 {
                     foreach (KeyValuePair<string, string> pair in oldUrls)
                     {
@@ -221,10 +212,8 @@ namespace StaticWebEpiserverPlugin.Initialization
             if (isPage)
             {
                 // Handle renaming of pages
-                var oldUrl = e.Items["StaticWeb-OldUrl"] as string;
-                if (oldUrl != null)
+                if (e.Items["StaticWeb-OldUrl"] is string oldUrl)
                 {
-                    var urlResolver = ServiceLocator.Current.GetInstance<IUrlResolver>();
                     var url = staticWebService.GetPageUrl(e.ContentLink);
                     if (url != oldUrl)
                     {

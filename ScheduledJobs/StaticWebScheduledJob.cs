@@ -106,6 +106,12 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 var page = _contentRepository.Get<PageData>(startPage);
                 AddAllPagesInAllLanguagesForConfiguration(configuration, page);
 
+                // Add pages url(s) into generated resouces from begining to prohibit it for downloading pages as resources
+                _generatedResources = new ConcurrentDictionary<string, string>(_sitePages[configuration.Name]);
+
+                // Runt first page first to get most of the common resources
+                var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
+
                 var parallelOptions = new ParallelOptions
                 {
                     MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelismForScheduledJob
@@ -113,18 +119,12 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
 
-                // Runt first page first to get most of the common resources
-                var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
-                _generatedResources = new ConcurrentDictionary<string, string>(_sitePages[configuration.Name]);
                 _staticWebService.GeneratePage(configuration, firstPageUrl.Key, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
 
                 // We now probably have most common
-                var pages = _sitePages[configuration.Name].Skip(1).ToList();
-                Parallel.ForEach(pages, parallelOptions, (pageInfo, _) =>
-                 {
-                         // TODO: Change this to handle SimpleAddress...
-                         _staticWebService.GeneratePage(configuration, pageInfo.Key, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
-                 });
+                IEnumerable<KeyValuePair<string, string>> pages = SortPages(configuration, _sitePages[configuration.Name].Skip(1));
+
+                GeneratingPages(configuration, parallelOptions, useTemporaryAttribute, pages);
 
                 if (configuration.UseRouting)
                 {
@@ -165,6 +165,38 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             }
 
             return resultMessage.ToString();
+        }
+
+        private void GeneratingPages(SiteConfigurationElement configuration, ParallelOptions parallelOptions, bool? useTemporaryAttribute, IEnumerable<KeyValuePair<string, string>> pages)
+        {
+            OnStatusChanged($"{configuration.Name} - Generating Pages");
+            Parallel.ForEach(pages, parallelOptions, (pageInfo, _) =>
+            {
+                // TODO: Change this to handle SimpleAddress...
+                _staticWebService.GeneratePage(configuration, pageInfo.Key, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
+            });
+            OnStatusChanged($"{configuration.Name} - Generated Pages");
+        }
+
+        private IEnumerable<KeyValuePair<string, string>> SortPages(SiteConfigurationElement configuration, IEnumerable<KeyValuePair<string, string>> pages)
+        {
+            OnStatusChanged($"{configuration.Name} - Sorting Pages {configuration.GenerateOrderForScheduledJob}");
+            switch (configuration.GenerateOrderForScheduledJob)
+            {
+                default:
+                case Models.GenerateOrderForScheduledJob.Default:
+                    pages = pages.ToList();
+                    break;
+                case Models.GenerateOrderForScheduledJob.UrlDepthFirst:
+                    pages = pages.OrderBy(pair => pair.Key.TrimEnd('/')).ToList();
+                    break;
+                case Models.GenerateOrderForScheduledJob.UrlBreadthFirst:
+                    // Smallest folder structure ordered alphabetic
+                    pages = pages.OrderBy(pair => pair.Key.TrimEnd('/').Count(character => character == '/').ToString().PadLeft(5, '0') + '|' + pair.Key).ToList();
+                    break;
+            }
+            OnStatusChanged($"{configuration.Name} - Sorted Pages {configuration.GenerateOrderForScheduledJob}");
+            return pages;
         }
 
         private void RemoveObsoleteResources(SiteConfigurationElement configuration)
@@ -315,8 +347,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 if (!ignorePage)
                 {
-                    string pageUrl, simpleAddress;
-                    _staticWebService.GetUrlsForPage(page, lang, out pageUrl, out simpleAddress);
+                    _staticWebService.GetUrlsForPage(page, lang, out string pageUrl, out string simpleAddress);
 
                     if (!string.IsNullOrEmpty(pageUrl))
                     {

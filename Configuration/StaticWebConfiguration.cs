@@ -120,8 +120,7 @@ namespace StaticWebEpiserverPlugin.Configuration
 
             var definitionId = definition.Id;
 
-            SiteConfigurationElement currentConfig;
-            if (_Cache.TryGetValue(definitionId, out currentConfig))
+            if (_Cache.TryGetValue(definitionId, out SiteConfigurationElement currentConfig))
             {
                 return currentConfig;
             }

@@ -25,7 +25,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["useResourceUrl"];
-                return config.HasValue ? config.Value : false;
+                return config ?? false;
             }
             set { this["useResourceUrl"] = value; }
         }
@@ -36,7 +36,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["useResourceFolder"];
-                return config.HasValue ? config.Value : true;
+                return config ?? true;
             }
             set { this["useResourceFolder"] = value; }
         }
@@ -48,7 +48,7 @@ namespace StaticWebEpiserverPlugin.Configuration
             get
             {
                 bool? config = (bool?)this["useHash"];
-                return config.HasValue ? config.Value : true;
+                return config ?? true;
             }
             set { this["useHash"] = value; }
         }

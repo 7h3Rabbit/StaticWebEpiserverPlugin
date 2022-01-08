@@ -87,9 +87,8 @@ namespace StaticWebEpiserverPlugin.Services
             File.Delete(configuration.OutputPath + relativePath + "index.html");
 
             AfterIODelete?.Invoke(this, new StaticWebIOEvent { FilePath = relativePath + "index.html" });
-
-            var hasFiles = false;
-            var hasDirectories = false;
+            bool hasFiles;
+            bool hasDirectories;
             try
             {
                 DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + relativePath);
@@ -162,8 +161,7 @@ namespace StaticWebEpiserverPlugin.Services
         }
         public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null)
         {
-            string pageUrl, simpleAddress;
-            GetUrlsForPage(page, lang, out pageUrl, out simpleAddress);
+            GetUrlsForPage(page, lang, out string pageUrl, out string simpleAddress);
             GeneratePage(configuration, pageUrl, useTemporaryAttribute, ignoreHtmlDependencies, simpleAddress, generatedResources);
         }
 
@@ -356,7 +354,7 @@ namespace StaticWebEpiserverPlugin.Services
             }
             if (!relativePath.EndsWith(@"\"))
             {
-                relativePath = relativePath + @"\";
+                relativePath += @"\";
             }
 
             return relativePath;
@@ -365,7 +363,7 @@ namespace StaticWebEpiserverPlugin.Services
         public string GetPageUrl(ContentReference contentLink, CultureInfo language = null)
         {
             var urlResolver = ServiceLocator.Current.GetInstance<UrlResolver>();
-            string orginalUrl = null;
+            string orginalUrl;
             if (language != null)
             {
                 orginalUrl = urlResolver.GetUrl(contentLink, language.Name);
@@ -436,8 +434,7 @@ namespace StaticWebEpiserverPlugin.Services
         public Dictionary<string, string> GetPageLanguageUrls(IContentRepository contentRepository, ContentReference contentReference)
         {
             Dictionary<string, string> languageUrls = new Dictionary<string, string>();
-            PageData page;
-            if (contentRepository.TryGet<PageData>(contentReference, out page))
+            if (contentRepository.TryGet<PageData>(contentReference, out PageData page))
             {
                 var languages = page.ExistingLanguages;
                 foreach (var lang in languages)
@@ -536,7 +533,6 @@ namespace StaticWebEpiserverPlugin.Services
             }
             else if (content is BlockData)
             {
-                var block = content as BlockData;
                 GeneratePagesDependingOnBlock(configuration, contentReference, useTemporaryAttribute, ignoreHtmlDependencies);
             }
         }
@@ -633,8 +629,7 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
-            string oldResultingResourceUrl;
-            if (replaceResourcePairs.TryGetValue(resourceUrl, out oldResultingResourceUrl))
+            if (replaceResourcePairs.TryGetValue(resourceUrl, out string oldResultingResourceUrl))
             {
                 return oldResultingResourceUrl;
             }

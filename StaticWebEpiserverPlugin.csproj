@@ -132,6 +132,7 @@
   <ItemGroup>
     <Compile Include="Channels\StaticWebChannel.cs" />
     <Compile Include="Interfaces\ITextResourceDependencyService.cs" />
+    <Compile Include="Models\GenerateOrderForScheduledJob.cs" />
     <Compile Include="Models\ResourceDependencyLookup.cs" />
     <Compile Include="Configuration\StaticWebConfiguration.cs" />
     <Compile Include="Configuration\StaticWebConfigurationSection.cs" />
