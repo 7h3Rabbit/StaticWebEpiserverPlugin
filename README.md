@@ -213,6 +213,17 @@ If this is set to `false` it will set `Normal` file attribute. If this is not se
 This attribute may be used for identify high priority changes when you have a custom application to transfer files to multiple servers.
 (It is better to use rsync or similar instead of this if possible).
 
+### `generateOrderForScheduledJob="Default/UrlDepthFirst/UrlBreadthFirst"` (default: `Default`) ###
+`Default` is for when you don't care about the order "Generate StaticWeb" scheduled job generate pages.
+It will generate the pages in the order it handles them.
+
+`UrlDepthFirst` will take one tree leg at a time going to the depth of every tree before continue to the next.
+It will do this by ordering the page urls alphabetic first and then take one by one starting from the top.
+You can read more about depth first on wikipedia: https://en.wikipedia.org/wiki/Tree_traversal#Depth-first_search
+
+`UrlBreadthFirst` will do this by ordering the page urls by number of "/" it has and then do sub ordering it alphabetic.
+You can read more about breadth first on wikipedia: https://en.wikipedia.org/wiki/Tree_traversal#Breadth-first_search
+
 ## AllowedResourceTypes Configuration ##
 With the `<allowedResourceTypes>` you can add, remove or change support for resource types.
 This is usefull if you for example want to extend support for more file extensions.
