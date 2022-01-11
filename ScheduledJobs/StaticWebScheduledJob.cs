@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StaticWebEpiserverPlugin.ScheduledJobs
@@ -35,6 +36,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
         protected Dictionary<int, string> _generatedPages;
         protected ConcurrentDictionary<string, string> _generatedResources;
         protected Dictionary<string, ConcurrentDictionary<string, string>> _sitePages;
+        protected CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public StaticWebScheduledJob()
         {
@@ -51,6 +53,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
         public override void Stop()
         {
             _stopSignaled = true;
+            _cancellationTokenSource.Cancel();
         }
 
         /// <summary>
@@ -59,6 +62,9 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
         /// <returns>A status message to be stored in the database log and visible from admin mode</returns>
         public override string Execute()
         {
+            _stopSignaled = false;
+            _cancellationTokenSource = new CancellationTokenSource();
+
             //Call OnStatusChanged to periodically notify progress of job for manually started jobs
             OnStatusChanged(String.Format("Starting execution of {0}", this.GetType()));
 
@@ -97,34 +103,21 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                 // This website has been setup for using StaticWebEpiServerPlugin
                 SiteDefinition.Current = siteDefinition;
 
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelismForScheduledJob,
+                    CancellationToken = _cancellationTokenSource.Token
+                };
+
                 // Add Empty placeholder for pages to come
                 _sitePages.Add(configuration.Name, new ConcurrentDictionary<string, string>());
 
                 //Add implementation
                 var startPage = SiteDefinition.Current.StartPage.ToReferenceWithoutVersion();
 
-                var page = _contentRepository.Get<PageData>(startPage);
-                AddAllPagesInAllLanguagesForConfiguration(configuration, page);
+                var pages = GetPages(configuration, parallelOptions, startPage);
 
-                // Add pages url(s) into generated resouces from begining to prohibit it for downloading pages as resources
-                _generatedResources = new ConcurrentDictionary<string, string>(_sitePages[configuration.Name]);
-
-                // Runt first page first to get most of the common resources
-                var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
-
-                var parallelOptions = new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelismForScheduledJob
-                };
-
-                bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
-
-                _staticWebService.GeneratePage(configuration, firstPageUrl.Key, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
-
-                // We now probably have most common
-                IEnumerable<KeyValuePair<string, string>> pages = SortPages(configuration, _sitePages[configuration.Name].Skip(1));
-
-                GeneratingPages(configuration, parallelOptions, useTemporaryAttribute, pages);
+                GeneratingPages(configuration, parallelOptions, pages);
 
                 if (configuration.UseRouting)
                 {
@@ -167,9 +160,29 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             return resultMessage.ToString();
         }
 
-        private void GeneratingPages(SiteConfigurationElement configuration, ParallelOptions parallelOptions, bool? useTemporaryAttribute, IEnumerable<KeyValuePair<string, string>> pages)
+        private IEnumerable<KeyValuePair<string, string>> GetPages(SiteConfigurationElement configuration, ParallelOptions parallelOptions, ContentReference startPage)
+        {
+            var page = _contentRepository.Get<PageData>(startPage);
+            AddAllPagesInAllLanguagesForConfiguration(configuration, page);
+
+            // Add pages url(s) into generated resouces from begining to prohibit it for downloading pages as resources
+            _generatedResources = new ConcurrentDictionary<string, string>(_sitePages[configuration.Name]);
+
+            // We now probably have most common
+            IEnumerable<KeyValuePair<string, string>> pages = SortPages(configuration, _sitePages[configuration.Name].Skip(1));
+            return pages;
+        }
+
+        private void GeneratingPages(SiteConfigurationElement configuration, ParallelOptions parallelOptions, IEnumerable<KeyValuePair<string, string>> pages)
         {
             OnStatusChanged($"{configuration.Name} - Generating Pages");
+            bool? useTemporaryAttribute = configuration.UseTemporaryAttribute.HasValue ? false : configuration.UseTemporaryAttribute;
+
+            // Runt first page first to get most of the common resources
+            var firstPageUrl = _sitePages[configuration.Name].FirstOrDefault();
+
+            _staticWebService.GeneratePage(configuration, firstPageUrl.Key, useTemporaryAttribute, IGNORE_HTML_DEPENDENCIES, null, _generatedResources);
+
             Parallel.ForEach(pages, parallelOptions, (pageInfo, _) =>
             {
                 // TODO: Change this to handle SimpleAddress...
@@ -313,6 +326,13 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
         protected void AddAllPagesInAllLanguagesForConfiguration(SiteConfigurationElement configuration, PageData page)
         {
+            //For long running jobs periodically check if stop is signaled and if so stop execution
+            if (_stopSignaled)
+            {
+                OnStatusChanged("Stop of job was called");
+                return;
+            }
+
             // Only add pages once (have this because of how websites can be setup to have a circle reference
             if (page.ContentLink == null || _generatedPages.ContainsKey(page.ContentLink.ID))
             {
