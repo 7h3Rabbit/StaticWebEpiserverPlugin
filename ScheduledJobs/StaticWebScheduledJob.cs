@@ -350,6 +350,11 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
 
+                if (!page.CheckPublishedStatus(PagePublishedStatus.Published))
+                {
+                    ignorePage = true;
+                }
+
                 // This page type has a conditional for when we should generate it
                 if (langPage is IStaticWebIgnoreGenerateDynamically generateDynamically)
                 {
