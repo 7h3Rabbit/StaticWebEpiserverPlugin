@@ -299,8 +299,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
                     IContent contentData = UrlResolver.Current.Route(new UrlBuilder(siteUrl + url));
 
                     // Does page exists?
-                    var pageExists = contentData != null;
-                    if (!pageExists)
+                    if (!(contentData is PageData page) || !page.CheckPublishedStatus(PagePublishedStatus.Published))
                     {
                         // remove index.html file as it doesn't exist in EpiServer
                         info.Delete();
