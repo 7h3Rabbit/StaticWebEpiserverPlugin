@@ -154,6 +154,7 @@
     <Compile Include="Routing\StaticWebRouting.cs" />
     <Compile Include="ScheduledJobs\StaticWebScheduledJob.cs" />
     <Compile Include="Services\CssDependencyService.cs" />
+    <Compile Include="Services\SvgDependencyService.cs" />
     <Compile Include="Services\HtmlDependencyService.cs" />
     <Compile Include="Services\IStaticWebService.cs" />
     <Compile Include="Services\StaticWebService.cs" />
