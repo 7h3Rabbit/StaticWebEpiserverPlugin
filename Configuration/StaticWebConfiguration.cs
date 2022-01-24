@@ -70,7 +70,7 @@ namespace StaticWebEpiserverPlugin.Configuration
         {
             List<AllowedResourceTypeConfigurationElement> allowedResourceTypes = new List<AllowedResourceTypeConfigurationElement>
             {
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false, DenendencyLookup = ResourceDependencyLookup.Html & ResourceDependencyLookup.Svg },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false, DenendencyLookup = ResourceDependencyLookup.Html | ResourceDependencyLookup.Svg },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".xml", MimeType = "application/xml", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".json", MimeType = "application/json", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".txt", MimeType = "text/plain", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
