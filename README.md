@@ -89,6 +89,7 @@ When generating a page, StaticWebEpiserverPlugin will find all client side resou
 - a element (href attribute)
 - img element (src attribute)
 - source element (srcset attribute)
+- use element (xlink:href attribute, used in svg)
 
 ### Following resource types will be stored by default ###
   - css (and resources declared in url())
@@ -244,7 +245,7 @@ _(If you also set `useHash` to true it will combine the two)_
 Tells StaticWebEpiServerPlugin to use place this type of file in the resource folder.
 By default it is only `.html`, `.xml`, `.json` and `.txt` that has this set to false so they can keep relative url.
 
-### `DenendencyLookup="None/Html/Css"` (default: `None`) ###
+### `DenendencyLookup="None/Html/Css/Svg"` (default: `None`) ###
 Tells StaticWebEpiServerPlugin that this file type should look for dependencies using the specified lookup method.
 Could be usefull if you add support for a new type of file type.
 
