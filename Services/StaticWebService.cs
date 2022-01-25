@@ -39,6 +39,7 @@ namespace StaticWebEpiserverPlugin.Services
         public event EventHandler<StaticWebIOEvent> AfterIODelete;
 
         public ITextResourceDependencyService _htmlDependencyService = new HtmlDependencyService();
+        public ITextResourceDependencyService _svgDependencyService = new SvgDependencyService();
         public ITextResourceDependencyService _cssDependencyService = new CssDependencyService();
 
         public StaticWebService()
@@ -598,18 +599,24 @@ namespace StaticWebEpiserverPlugin.Services
 
         protected string EnsureDependencies(string referencingUrl, string content, SiteConfigurationElement siteConfiguration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, AllowedResourceTypeConfigurationElement typeConfiguration, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
-            switch (typeConfiguration.DenendencyLookup)
+            string workingContent = content;
+            if (typeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.Html))
             {
-                case ResourceDependencyLookup.Html:
-                    if (ignoreHtmlDependencies && callDepth != 0)
-                        return content;
-                    return _htmlDependencyService.EnsureDependencies(referencingUrl, content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
-                case ResourceDependencyLookup.Css:
-                    return _cssDependencyService.EnsureDependencies(referencingUrl, content, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
-                case ResourceDependencyLookup.None:
-                default:
-                    return content;
+                if (!ignoreHtmlDependencies || callDepth == 0)
+                {
+                    workingContent = _htmlDependencyService.EnsureDependencies(referencingUrl, workingContent, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
+                }
             }
+            if (typeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.Svg))
+            {
+                workingContent = _svgDependencyService.EnsureDependencies(referencingUrl, workingContent, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
+            }
+            if (typeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.Css))
+            {
+                workingContent = _cssDependencyService.EnsureDependencies(referencingUrl, workingContent, this, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, currentPageResourcePairs, replaceResourcePairs, ++callDepth);
+            }
+
+            return workingContent;
         }
 
         public string EnsureResource(SiteConfigurationElement siteConfiguration, string resourceUrl, Dictionary<string, string> currentPageResourcePairs, ConcurrentDictionary<string, string> replaceResourcePairs, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, int callDepth = 0)
@@ -641,7 +648,7 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
-            if (ignoreHtmlDependencies && callDepth != 0 && resourceInfo.TypeConfiguration.DenendencyLookup == ResourceDependencyLookup.Html)
+            if (ignoreHtmlDependencies && callDepth != 0 && resourceInfo.TypeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.Html))
             {
                 return null;
             }
@@ -658,7 +665,7 @@ namespace StaticWebEpiserverPlugin.Services
                 currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
             }
 
-            if (resourceInfo.TypeConfiguration.DenendencyLookup != ResourceDependencyLookup.None)
+            if (!resourceInfo.TypeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.None))
             {
                 var content = Encoding.UTF8.GetString(resourceInfo.Data);
                 content = EnsureDependencies(resourceUrl, content, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs, callDepth);

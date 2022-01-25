@@ -8,7 +8,7 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class CssDependencyService : ITextResourceDependencyService
     {
-        static readonly Regex REGEX_FIND_URL_REFERENCE = new Regex("url\\([\"|']{0,1}(?<resource>[^[\\)\"|']+)", RegexOptions.Compiled);
+        static readonly Regex REGEX_FIND_URL_REFERENCE = new Regex("url\\([\"']{0,1}(?<resource>[^[\\)\"'#]+)", RegexOptions.Compiled);
 
         public string EnsureDependencies(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {

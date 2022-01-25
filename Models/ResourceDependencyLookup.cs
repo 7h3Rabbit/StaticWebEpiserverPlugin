@@ -6,7 +6,8 @@ namespace StaticWebEpiserverPlugin.Models
     public enum ResourceDependencyLookup
     {
         None = 0,
-        Html,
-        Css
+        Html = 1,
+        Css = 2,
+        Svg = 4
     }
 }

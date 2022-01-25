@@ -70,7 +70,7 @@ namespace StaticWebEpiserverPlugin.Configuration
         {
             List<AllowedResourceTypeConfigurationElement> allowedResourceTypes = new List<AllowedResourceTypeConfigurationElement>
             {
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false, DenendencyLookup = ResourceDependencyLookup.Html },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".html", MimeType = "text/html", UseHash = false, UseResourceUrl = true, UseResourceFolder = false, DenendencyLookup = ResourceDependencyLookup.Html | ResourceDependencyLookup.Svg },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".xml", MimeType = "application/xml", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".json", MimeType = "application/json", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".txt", MimeType = "text/plain", UseHash = false, UseResourceUrl = true, UseResourceFolder = false },
@@ -87,7 +87,7 @@ namespace StaticWebEpiserverPlugin.Configuration
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".gif", MimeType = "image/gif", UseHash = true, UseResourceUrl = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".ico", MimeType = "image/vnd.microsoft.icon", UseHash = true, UseResourceUrl = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".webp", MimeType = "image/webp", UseHash = true, UseResourceUrl = false },
-                new AllowedResourceTypeConfigurationElement() { FileExtension = ".svg", MimeType = "image/svg+xml", UseHash = true, UseResourceUrl = false },
+                new AllowedResourceTypeConfigurationElement() { FileExtension = ".svg", MimeType = "image/svg+xml", UseHash = true, UseResourceUrl = false, DenendencyLookup = ResourceDependencyLookup.Svg },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".pdf", MimeType = "application/pdf", UseHash = true, UseResourceUrl = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff", MimeType = "font/woff", UseHash = true, UseResourceUrl = false },
                 new AllowedResourceTypeConfigurationElement() { FileExtension = ".woff2", MimeType = "font/woff2", UseHash = true, UseResourceUrl = false }
