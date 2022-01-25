@@ -648,7 +648,7 @@ namespace StaticWebEpiserverPlugin.Services
                 return null;
             }
 
-            if (ignoreHtmlDependencies && callDepth != 0 && resourceInfo.TypeConfiguration.DenendencyLookup == ResourceDependencyLookup.Html)
+            if (ignoreHtmlDependencies && callDepth != 0 && resourceInfo.TypeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.Html))
             {
                 return null;
             }
@@ -665,7 +665,7 @@ namespace StaticWebEpiserverPlugin.Services
                 currentPageResourcePairs.Add(resourceUrl, newResourceUrl);
             }
 
-            if (resourceInfo.TypeConfiguration.DenendencyLookup != ResourceDependencyLookup.None)
+            if (!resourceInfo.TypeConfiguration.DenendencyLookup.HasFlag(ResourceDependencyLookup.None))
             {
                 var content = Encoding.UTF8.GetString(resourceInfo.Data);
                 content = EnsureDependencies(resourceUrl, content, siteConfiguration, useTemporaryAttribute, ignoreHtmlDependencies, resourceInfo.TypeConfiguration, currentPageResourcePairs, replaceResourcePairs, callDepth);
