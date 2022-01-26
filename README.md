@@ -268,3 +268,15 @@ In below example we only support resources with the following file extensions (a
 		<add fileExtension=".js" mimeType="text/javascript" />
 		<add fileExtension=".jpg" mimeType="image/jpg" />
 	</allowedResourceTypes>`
+	
+### Replace ONE or a few allowed resource types ###
+Below illustrate how to replace ONE of the default resource types but for everything else use the default.
+Allowing you to finetune exactly what resource types you support and the behavior (for example turn off use of hash in filename).
+
+	`<allowedResourceTypes>
+		<remove mimeType="video/mp4">
+		<add fileExtension=".mp4" mimeType="video/mp4" useHash="false" />
+	</allowedResourceTypes>`
+	
+	
+	
