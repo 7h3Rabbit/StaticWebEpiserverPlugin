@@ -340,11 +340,12 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
             _generatedPages.Add(page.ContentLink.ID, null);
 
             // This page type should be ignored
-            var ignorePage = page is IStaticWebIgnoreGenerate;
+            var ignorePageType = page is IStaticWebIgnoreGenerate;
 
             var languages = page.ExistingLanguages;
             foreach (var lang in languages)
             {
+                var ignorePage = ignorePageType;
                 var langPage = _contentRepository.Get<PageData>(page.ContentLink.ToReferenceWithoutVersion(), lang);
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
