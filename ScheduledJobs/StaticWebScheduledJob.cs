@@ -349,7 +349,7 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 var langContentLink = langPage.ContentLink.ToReferenceWithoutVersion();
 
-                if (!page.CheckPublishedStatus(PagePublishedStatus.Published))
+                if (!langPage.CheckPublishedStatus(PagePublishedStatus.Published))
                 {
                     ignorePage = true;
                 }
