@@ -114,6 +114,7 @@ The rest will be ignored.
 - All pages need to inherit from PageData
 - All blocks needs to inherit from BlockData
 - Website has to return pages, javascript and css as UTF-8
+- 404 page (Page not found) must return [HTTP Status: 404](https://en.wikipedia.org/wiki/HTTP_404)
 - Must allow visits with user-agent `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36 StaticWebPlugin/0.1`
 
 
