@@ -56,6 +56,29 @@ namespace StaticWebEpiserverPlugin.Services
                         resourceUrl = directory.Replace(@"\", "/") + "/" + resourceUrl;
                     }
 
+                    if (currentPageResourcePairs.ContainsValue(resourceUrl))
+                    {
+                        /**
+                         * Website is probably using a 404 page that is not returning HTTP StatusCode 404, ignore this...
+                         **/
+                        continue;
+                    }
+
+                    if (replaceResourcePairs.ContainsKey(resourceUrl))
+                    {
+                        /**
+                         * If we have already downloaded resource, we don't need to download it again.
+                         * Not only usefull for pages repeating same resource but also in our Scheduled job where we try to generate all pages.
+                         **/
+
+                        if (!currentPageResourcePairs.ContainsKey(resourceUrl))
+                        {
+                            // current page has no info regarding this resource, add it
+                            currentPageResourcePairs.Add(resourceUrl, replaceResourcePairs[resourceUrl]);
+                        }
+                        continue;
+                    }
+
                     string newResourceUrl = staticWebService.EnsureResource(configuration, resourceUrl, currentPageResourcePairs, replaceResourcePairs, useTemporaryAttribute, ignoreHtmlDependencies, callDepth);
                     if (!string.IsNullOrEmpty(newResourceUrl))
                     {

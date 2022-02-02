@@ -59,6 +59,14 @@ namespace StaticWebEpiserverPlugin.Services
                 if (group.Success)
                 {
                     var resourceUrl = group.Value;
+                    if (currentPageResourcePairs.ContainsValue(resourceUrl))
+                    {
+                        /**
+                         * Website is probably using a 404 page that is not returning HTTP StatusCode 404, ignore this...
+                         **/
+                        continue;
+                    }
+
                     if (replaceResourcePairs.ContainsKey(resourceUrl))
                     {
                         /**
