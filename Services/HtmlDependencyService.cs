@@ -9,9 +9,9 @@ namespace StaticWebEpiserverPlugin.Services
 {
     public class HtmlDependencyService : ITextResourceDependencyService
     {
-        static readonly Regex REGEX_FIND_SOURCE_REFERENCE = new Regex("<(source).*(srcset)=[\"'](?<imageCandidates>[^\"']+)[\"'#]", RegexOptions.Compiled);
+        static readonly Regex REGEX_FIND_SOURCE_REFERENCE = new Regex("<(source)[^>]+(srcset)=[\"'](?<imageCandidates>[^\"']+)[\"'#]", RegexOptions.Compiled);
         static readonly Regex REGEX_FIND_SOURCE_RESOUCE_REFERENCE = new Regex("(?<resource>[^, ]+)( [0-9.]+[w|x][,]{0,1})*", RegexOptions.Compiled);
-        static readonly Regex REGEX_FIND_SCRIPT_OR_LINK_OR_IMG_OR_A_URL_REFERENCE = new Regex("<(script|link|img|a).*(href|src)=[\"'](?<resource>[^\"'#]+)", RegexOptions.Compiled);
+        static readonly Regex REGEX_FIND_SCRIPT_OR_LINK_OR_IMG_OR_A_URL_REFERENCE = new Regex("<(script|link|img|a)[^>]+(href|src)=[\"'](?<resource>[^\"'#]+)[^>]+", RegexOptions.Compiled);
 
         public string EnsureDependencies(string referencingUrl, string content, IStaticWebService staticWebService, SiteConfigurationElement configuration, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, Dictionary<string, string> currentPageResourcePairs = null, ConcurrentDictionary<string, string> replaceResourcePairs = null, int callDepth = 0)
         {
