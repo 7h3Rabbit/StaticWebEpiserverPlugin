@@ -71,7 +71,7 @@ namespace StaticWebEpiserverPlugin.Services
         void GeneratePage(ContentReference contentReference, IContent content, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
         void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null);
         void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null);
-        void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress);
+        List<string> GetUrlsForPage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, out string simpleAddress);
         void GeneratePagesDependingOnBlock(SiteConfigurationElement configuration, ContentReference contentLink, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
         void GeneratePagesDependingOnContent(SiteConfigurationElement configuration, ContentReference contentReference, bool? useTemporaryAttribute, bool ignoreHtmlDependencies);
         void GeneratePageInAllLanguages(IContentRepository contentRepository, SiteConfigurationElement configuration, PageData page, bool ignoreHtmlDependencies);

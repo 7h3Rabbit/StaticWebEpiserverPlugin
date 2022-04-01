@@ -372,12 +372,12 @@ namespace StaticWebEpiserverPlugin.ScheduledJobs
 
                 if (!ignorePage)
                 {
-                    _staticWebService.GetUrlsForPage(page, lang, out string pageUrl, out string simpleAddress);
+                    var urls = _staticWebService.GetUrlsForPage(configuration, page, lang, out string simpleAddress);
 
-                    if (!string.IsNullOrEmpty(pageUrl))
+                    foreach (var url in urls)
                     {
-                        UpdateScheduledJobStatus(configuration, pageUrl);
-                        _sitePages[configuration.Name].TryAdd(pageUrl, null);
+                        UpdateScheduledJobStatus(configuration, url);
+                        _sitePages[configuration.Name].TryAdd(url, null);
                     }
                     if (!string.IsNullOrEmpty(simpleAddress))
                     {

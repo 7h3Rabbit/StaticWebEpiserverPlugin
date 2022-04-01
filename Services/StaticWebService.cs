@@ -162,14 +162,72 @@ namespace StaticWebEpiserverPlugin.Services
         }
         public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null)
         {
-            GetUrlsForPage(page, lang, out string pageUrl, out string simpleAddress);
-            GeneratePage(configuration, pageUrl, useTemporaryAttribute, ignoreHtmlDependencies, simpleAddress, generatedResources);
+            var urls = GetUrlsForPage(configuration, page, lang, out string simpleAddress);
+
+            var firstUrl = urls.FirstOrDefault();
+            if (!string.IsNullOrEmpty(firstUrl))
+            {
+                GeneratePage(configuration, firstUrl, useTemporaryAttribute, ignoreHtmlDependencies, simpleAddress, generatedResources);
+            }
+
+            urls = urls.Skip(1).ToList();
+            foreach (var url in urls)
+            {
+                GeneratePage(configuration, url, useTemporaryAttribute, ignoreHtmlDependencies, null, generatedResources);
+            }
         }
 
-        public void GetUrlsForPage(PageData page, CultureInfo lang, out string pageUrl, out string simpleAddress)
+        public List<string> GetUrlsForPage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, out string simpleAddress)
         {
+            var urls = new List<string>();
+
             simpleAddress = string.IsNullOrEmpty(page.ExternalURL) ? null : "/" + page.ExternalURL;
-            pageUrl = GetPageUrl(page.ContentLink.ToReferenceWithoutVersion(), lang);
+            var pageUrl = GetPageUrl(page.ContentLink.ToReferenceWithoutVersion(), lang);
+
+            if (!string.IsNullOrEmpty(pageUrl))
+            {
+                urls.Add(pageUrl);
+
+                // TODO: Add configuration.UseFallbackLanguage?
+                if (true)
+                {
+                    urls.AddRange(GetFallbackUrlsForPageUrl(page.Language.TwoLetterISOLanguageName, pageUrl));
+                }
+            }
+
+            return urls;
+        }
+
+        private IEnumerable<string> GetFallbackUrlsForPageUrl(string twoLetterISOLanguageName, string pageUrl)
+        {
+            var urls = new List<string>();
+
+            var langList = new Dictionary<string, List<string>>();
+            var languageSettingsList = ServiceLocator.Current.GetInstance<EPiServer.DataAbstraction.ContentLanguageSettingRepository>().List();
+            foreach (var languageSetting in languageSettingsList)
+            {
+                var fallbackLangeuageKey = languageSetting.LanguageBranch;
+                foreach (var languageKey in languageSetting.LanguageBranchFallback)
+                {
+                    if (!langList.ContainsKey(languageKey))
+                    {
+                        langList.Add(languageKey, new List<string> { fallbackLangeuageKey });
+                    }else
+                    {
+                        langList[languageKey].Add(fallbackLangeuageKey);
+                    }
+                }
+            }
+
+            if (langList.ContainsKey(twoLetterISOLanguageName))
+            {
+                foreach (string langKey in langList[twoLetterISOLanguageName])
+                {
+                    urls.Add(pageUrl.Replace($"/{twoLetterISOLanguageName}/", $"/{langKey}/"));
+                }
+            }
+
+            return urls;
         }
 
         public void GeneratePage(SiteConfigurationElement configuration, string pageUrl, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, string simpleAddress = null, ConcurrentDictionary<string, string> generatedResources = null)
