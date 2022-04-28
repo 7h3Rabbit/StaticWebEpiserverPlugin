@@ -157,32 +157,14 @@ namespace StaticWebEpiserverPlugin.Initialization
                         staticWebService.GeneratePageInAllLanguages(contentRepository, configuration, subPage, IGNORE_HTML_DEPENDENCIES);
                     }
                 }
-
-                // create redirect pages in old location(s)
-                var oldUrls = e.Items["StaticWeb-OldLanguageUrls"] as Dictionary<string, string>;
-                var newContentReference = new ContentReference(e.Content.ContentLink.ID);
-                var newUrls = staticWebService.GetPageLanguageUrls(contentRepository, newContentReference);
-                if (oldUrls != null && newUrls != null && oldUrls.Count == newUrls.Count)
-                {
-                    foreach (KeyValuePair<string, string> pair in oldUrls)
-                    {
-                        if (newUrls.ContainsKey(pair.Key))
-                        {
-                            var newUrl = newUrls[pair.Key];
-                            staticWebService.CreateRedirectPages(configuration, pair.Value, newUrl);
-                        }
-                    }
-                }
             }
-            else
+
+            // Remove old page
+            if (e.Items["StaticWeb-OldLanguageUrls"] is Dictionary<string, string> oldUrls)
             {
-                // Remove page as it was added to WasteBasket
-                if (e.Items["StaticWeb-OldLanguageUrls"] is Dictionary<string, string> oldUrls)
+                foreach (KeyValuePair<string, string> pair in oldUrls)
                 {
-                    foreach (KeyValuePair<string, string> pair in oldUrls)
-                    {
-                        staticWebService.RemoveGeneratedPage(configuration, pair.Value, true);
-                    }
+                    staticWebService.RemoveGeneratedPage(configuration, pair.Value, true);
                 }
             }
         }
@@ -217,9 +199,8 @@ namespace StaticWebEpiserverPlugin.Initialization
                     var url = staticWebService.GetPageUrl(e.ContentLink);
                     if (url != oldUrl)
                     {
-                        // Page has changed url, remove old page(s) and generate new for children.
-                        var newUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
-                        staticWebService.CreateRedirectPages(configuration, oldUrl, newUrl);
+                        var removeSubFolders = true;
+                        staticWebService.RemoveGeneratedPage(configuration, oldUrl, removeSubFolders);
                     }
                 }
             }

@@ -93,7 +93,8 @@ namespace StaticWebEpiserverPlugin.Services
             try
             {
                 DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + relativePath);
-                hasFiles = directoryInfo.GetFiles().Length > 0;
+                // Because of IO cache we might get 1 file as index.html has not yet been removed, ignore it if it happens
+                hasFiles = directoryInfo.GetFiles().Any(file=> file.Name != "index.html");
                 hasDirectories = directoryInfo.GetDirectories().Length > 0;
             }
             catch (Exception)
@@ -109,57 +110,6 @@ namespace StaticWebEpiserverPlugin.Services
             }
         }
 
-        public void CreateRedirectPages(SiteConfigurationElement configuration, string oldUrl, string newUrl)
-        {
-            if (configuration == null || !configuration.Enabled)
-            {
-                return;
-            }
-
-            if (!Directory.Exists(configuration.OutputPath + oldUrl))
-            {
-                // Directory doesn't exist, nothing to remove :)
-                return;
-            }
-
-            if (!File.Exists(configuration.OutputPath + oldUrl + "index.html"))
-            {
-                // File doesn't exist, nothing to remove :)
-                return;
-            }
-
-            try
-            {
-                DirectoryInfo directoryInfo = new DirectoryInfo(configuration.OutputPath + oldUrl);
-                var fileInfos = directoryInfo.GetFiles("index.html", SearchOption.AllDirectories);
-
-                foreach (FileInfo info in fileInfos)
-                {
-                    var tempPath = info.FullName;
-                    // c:\websites\A\
-                    tempPath = "/" + tempPath.Replace(configuration.OutputPath, "").Replace("\\", "/");
-                    // /old/
-                    tempPath = tempPath.Replace(oldUrl, "");
-
-                    // index.html
-                    tempPath = tempPath.Replace("index.html", "");
-
-                    // /new/
-                    tempPath = newUrl + tempPath;
-
-                    // Create redirect html file
-                    var redirectHtml = $"<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0; URL='{tempPath}'\" /></head><body><a href=\"{tempPath}\">{tempPath}</a></body></html>";
-                    File.WriteAllText(info.FullName, redirectHtml);
-
-                    AfterIOWrite?.Invoke(this, new StaticWebIOEvent { FilePath = info.FullName, Data = Encoding.UTF8.GetBytes(redirectHtml) });
-                }
-            }
-            catch (Exception)
-            {
-                // something was wrong, but this is just extra cleaning so ignore it
-                return;
-            }
-        }
         public void GeneratePage(SiteConfigurationElement configuration, PageData page, CultureInfo lang, bool? useTemporaryAttribute, bool ignoreHtmlDependencies, ConcurrentDictionary<string, string> generatedResources = null)
         {
             var urls = GetUrlsForPage(configuration, page, lang, out string simpleAddress);
