@@ -45,12 +45,11 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnDeletingContent(object sender, DeleteContentEventArgs e)
         {
-            var isPage = e.Content is PageData;
-            if (isPage)
+            if (e.Content is PageData page)
             {
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
 
-                var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
+                var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID), page.Language);
                 e.Items.Add("StaticWeb-OldUrl", oldUrl);
             }
         }
@@ -86,12 +85,11 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnPublishingContent(object sender, ContentEventArgs e)
         {
-            var isPage = e.Content is PageData;
-            if (isPage)
+            if (e.Content is PageData page)
             {
                 var staticWebService = ServiceLocator.Current.GetInstance<IStaticWebService>();
 
-                var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID));
+                var oldUrl = staticWebService.GetPageUrl(new ContentReference(e.Content.ContentLink.ID), page.Language);
                 e.Items.Add("StaticWeb-OldUrl", oldUrl);
             }
         }
@@ -171,9 +169,17 @@ namespace StaticWebEpiserverPlugin.Initialization
 
         private void OnPublishedContent(object sender, ContentEventArgs e)
         {
-            var isPage = e.Content is PageData;
-            var isBlock = e.Content is BlockData;
-            if (!isPage && !isBlock)
+            var page = e.Content as PageData;
+            bool isPage;
+            if (isPage = page != null)
+            {
+                // Content is of type PageData
+            }
+            else if (e.Content is BlockData)
+            {
+                // Content is of type BlockData
+            }
+            else
             {
                 // Content is not of type PageData or BlockData, ignore
                 return;
@@ -196,7 +202,7 @@ namespace StaticWebEpiserverPlugin.Initialization
                 // Handle renaming of pages
                 if (e.Items["StaticWeb-OldUrl"] is string oldUrl)
                 {
-                    var url = staticWebService.GetPageUrl(e.ContentLink);
+                    var url = staticWebService.GetPageUrl(e.ContentLink, page.Language);
                     if (url != oldUrl)
                     {
                         var removeSubFolders = true;
