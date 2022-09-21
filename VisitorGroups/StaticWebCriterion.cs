@@ -1,7 +1,6 @@
 ﻿using EPiServer.Personalization.VisitorGroups;
 using StaticWebEpiserverPlugin.Channels;
 using System.Security.Principal;
-using System.Web;
 
 namespace StaticWebEpiserverPlugin.VisitorGroups
 {

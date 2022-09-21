@@ -1,5 +1,4 @@
 ﻿using EPiServer.Web;
-using System.Web;
 
 namespace StaticWebEpiserverPlugin.Channels
 {
